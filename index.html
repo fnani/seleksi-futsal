@@ -168,6 +168,10 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2.5 items-center">
+                        <button onclick="exportTeamsExcel()" class="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-slate-950 font-bold rounded-xl text-sm transition shadow-md shadow-sky-900/40 flex items-center gap-2">
+                            <span>Export Tim (.xlsx)</span>
+                        </button>
+
                         <button onclick="toggleUnassignedDrawer()" class="px-4 py-2.5 bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-300 rounded-xl text-sm font-semibold transition flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
                             <span>Sisa Pemain</span>
@@ -705,6 +709,61 @@
             XLSX.writeFile(workbook, "Rekap_Peserta_Hadir_Futsal.xlsx");
         }
 
+        // --- FITUR BARU: EXPORT KELOLA TIM KE EXCEL (.xlsx) ---
+        function exportTeamsExcel() {
+            if (teams.length === 0) {
+                alert("Belum ada data tim yang terbentuk untuk diexport.");
+                return;
+            }
+
+            let exportData = [];
+            teams.forEach((team, tIdx) => {
+                let vObj = VEST_COLORS.find(v => v.id === team.vestColorId) || VEST_COLORS[0];
+                let matchNum = Math.floor(tIdx / 2) + 1;
+
+                // Masukkan data Kiper jika ada
+                if (team.gkPlayer && team.gkPlayer.player) {
+                    let gId = team.gkPlayer.player.id;
+                    let realGk = participants.find(x => String(x.id) === String(gId)) || team.gkPlayer.player;
+                    exportData.push({
+                        "Match": `Match #${matchNum}`,
+                        "Nama Tim": team.name,
+                        "Warna Rompi": vObj.name,
+                        "No. Punggung": team.gkPlayer.vestNum || "-",
+                        "Posisi": "GK",
+                        "Nama Pemain": realGk.name || "-",
+                        "Asal Sekolah": realGk.school || "-",
+                        "No. HP": realGk.phone || "-",
+                        "Klub": realGk.club || "-"
+                    });
+                }
+
+                // Masukkan data Pemain Lapangan
+                team.players.forEach((slot) => {
+                    if (slot && slot.player) {
+                        let pId = slot.player.id;
+                        let realPlayer = participants.find(x => String(x.id) === String(pId)) || slot.player;
+                        exportData.push({
+                            "Match": `Match #${matchNum}`,
+                            "Nama Tim": team.name,
+                            "Warna Rompi": vObj.name,
+                            "No. Punggung": slot.vestNum || "-",
+                            "Posisi": realPlayer.position || "-",
+                            "Nama Pemain": realPlayer.name || "-",
+                            "Asal Sekolah": realPlayer.school || "-",
+                            "No. HP": realPlayer.phone || "-",
+                            "Klub": realPlayer.club || "-"
+                        });
+                    }
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Daftar Tim Match");
+            XLSX.writeFile(workbook, "Daftar_Tim_dan_Match_Futsal.xlsx");
+        }
+
         // --- ALGORITMA WAJIB RATA: 1 Anchor, 2 Flank, 1 Pivot, 1 GK persis di setiap tim ---
         function generateTeams() {
             const presentPlayers = participants.filter(p => p.present);
@@ -714,7 +773,6 @@
             const flanks = shuffleArray(presentPlayers.filter(p => p.position === 'Flank'));
             const pivots = shuffleArray(presentPlayers.filter(p => p.position === 'Pivot'));
 
-            // Tentukan jumlah tim maksimum yang bisa dibuat dengan formasi lengkap (1 Anchor, 2 Flank, 1 Pivot, 1 GK)
             let numTeams = Math.min(
                 gkHadir.length,
                 anchors.length,
@@ -728,7 +786,7 @@
             }
 
             if(numTeams % 2 !== 0 && numTeams > 1) {
-                numTeams--; // Buat genap agar berpasangan tanding, sisa pemain masuk daftar sisa
+                numTeams--; 
             }
 
             let newTeams = [];
@@ -738,12 +796,12 @@
                     name: `Tim ${i+1}`, 
                     vestColorId: colorId,
                     players: [
-                        { player: { id: anchors.shift().id }, vestNum: "" }, // Slot 0: Anchor
-                        { player: { id: flanks.shift().id }, vestNum: "" },  // Slot 1: Flank 1
-                        { player: { id: flanks.shift().id }, vestNum: "" },  // Slot 2: Flank 2
-                        { player: { id: pivots.shift().id }, vestNum: "" }   // Slot 3: Pivot
+                        { player: { id: anchors.shift().id }, vestNum: "" }, 
+                        { player: { id: flanks.shift().id }, vestNum: "" },  
+                        { player: { id: flanks.shift().id }, vestNum: "" },  
+                        { player: { id: pivots.shift().id }, vestNum: "" }   
                     ],
-                    gkPlayer: { player: { id: gkHadir.shift().id }, vestNum: "" } // Kiper
+                    gkPlayer: { player: { id: gkHadir.shift().id }, vestNum: "" } 
                 });
             }
 
