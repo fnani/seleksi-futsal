@@ -23,7 +23,7 @@
                 <div class="bg-emerald-500 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl text-base tracking-wider shadow-md shadow-emerald-500/20">SF</div>
                 <div>
                     <h1 class="text-lg font-bold tracking-tight text-slate-100">Sistem Seleksi Futsal</h1>
-                    <p class="text-sm text-slate-400">Tim Futsal Ponprov Kab. Kediri (Firebase Live Sync)</p>
+                    <p class="text-sm text-slate-400">Tim Futsal Ponprov Kab. Kediri (Real-time Firebase Sync)</p>
                 </div>
             </div>
             
@@ -57,7 +57,7 @@
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h2 class="text-lg font-bold text-slate-100">Daftar Kehadiran Peserta (Admin)</h2>
-                        <p class="text-sm text-slate-400">Data diambil langsung dari Database Firebase (Real-time).</p>
+                        <p class="text-sm text-slate-400">Sinkronisasi otomatis real-time antar perangkat.</p>
                     </div>
                     <div class="flex flex-wrap gap-2.5">
                         <button onclick="setAllAttendance(true)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition">Centang Semua</button>
@@ -344,12 +344,11 @@
         </div>
     </div>
 
-    <!-- Firebase SDK Imports -->
+    <!-- Firebase SDK Imports with Real-time onSnapshot -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Konfigurasi Firebase sesuai dengan akun kamu
         const firebaseConfig = {
             apiKey: "AIzaSyDARoARtFkgQB-7J_mG_DDAcSIIwzVKaG8",
             authDomain: "seleksi-futsal.firebaseapp.com",
@@ -365,11 +364,11 @@
 
         window.db = db;
         window.doc = doc;
-        window.getDoc = getDoc;
         window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
 
-        if (typeof window.initFirebaseApp === 'function') {
-            window.initFirebaseApp();
+        if (typeof window.initFirebaseRealtime === 'function') {
+            window.initFirebaseRealtime();
         }
     </script>
 
@@ -397,35 +396,27 @@
             { id: "white", name: "Putih", colorClass: "bg-slate-100", cardBg: "bg-slate-900/60", border: "border-slate-400/80", headerBg: "bg-slate-200/20", text: "text-slate-100", badge: "bg-slate-100 text-slate-950" }
         ];
 
-        async function loadData() {
-            try {
-                if (window.db) {
-                    // Mengambil data dari collection: futsal_data, document: participants
-                    const docRef = window.doc(window.db, "futsal_data", "participants");
-                    const docSnap = await window.getDoc(docRef);
+        // Inisialisasi Real-time Listener menggunakan onSnapshot
+        window.initFirebaseRealtime = function() {
+            if (window.db) {
+                const docRef = window.doc(window.db, "futsal_data", "participants");
+                window.onSnapshot(docRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         participants = data.list || [];
-                    } else {
-                        console.error("Dokumen peserta tidak ditemukan di Firestore!");
                     }
+                    refreshAllViews();
+                });
 
-                    // Mengambil data tim jika ada
-                    const docTeamsRef = window.doc(window.db, "futsal_data", "teams");
-                    const docTeamsSnap = await window.getDoc(docTeamsRef);
-                    if (docTeamsSnap.exists()) {
-                        teams = docTeamsSnap.data().list || [];
+                const docTeamsRef = window.doc(window.db, "futsal_data", "teams");
+                window.onSnapshot(docTeamsRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        teams = docSnap.data().list || [];
                     }
-                }
-            } catch (e) {
-                console.error("Gagal memuat dari Firebase:", e);
+                    refreshAllViews();
+                });
             }
-
-            if(teams.length === 0 && participants.length > 0) {
-                generateTeams();
-            }
-            refreshAllViews();
-        }
+        };
 
         async function saveData() {
             try {
@@ -440,10 +431,6 @@
                 console.error("Gagal menyimpan ke Firebase:", e);
             }
             updateBadges();
-        }
-
-        window.initFirebaseApp = function() {
-            loadData();
         }
 
         function switchTab(tabID) {
@@ -471,11 +458,11 @@
 
             let assignedIds = new Set();
             teams.forEach(t => {
-                t.players.forEach(p => { if(p && p.player) assignedIds.add(p.player.id); });
-                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
+                t.players.forEach(p => { if(p && p.player) assignedIds.add(String(p.player.id)); });
+                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(String(t.gkPlayer.player.id));
             });
 
-            const unassignedCount = participants.filter(p => p.present && !assignedIds.has(p.id)).length;
+            const unassignedCount = participants.filter(p => p.present && !assignedIds.has(String(p.id))).length;
 
             const badge = document.getElementById('badge-hadir');
             const badgeStarred = document.getElementById('count-starred-badge');
@@ -509,7 +496,7 @@
         }
 
         function toggleStarOnly(id) {
-            const p = participants.find(x => x.id === id);
+            const p = participants.find(x => String(x.id) === String(id));
             if(p) {
                 p.starred = !p.starred;
                 if(p.starred) p.passed = false;
@@ -519,7 +506,7 @@
         }
 
         function togglePassOnly(id) {
-            const p = participants.find(x => x.id === id);
+            const p = participants.find(x => String(x.id) === String(id));
             if(p) {
                 p.passed = !p.passed;
                 if(p.passed) p.starred = false;
@@ -529,7 +516,7 @@
         }
 
         function removeCandidateStatus(id) {
-            const p = participants.find(x => x.id === id);
+            const p = participants.find(x => String(x.id) === String(id));
             if(p) {
                 p.starred = false;
                 p.passed = false;
@@ -541,8 +528,8 @@
         function isPlayerInAnyTeam(pId) {
             let count = 0;
             teams.forEach(t => {
-                t.players.forEach(slot => { if(slot && slot.player && slot.player.id === pId) count++; });
-                if(t.gkPlayer && t.gkPlayer.player && t.gkPlayer.player.id === pId) count++;
+                t.players.forEach(slot => { if(slot && slot.player && String(slot.player.id) === String(pId)) count++; });
+                if(t.gkPlayer && t.gkPlayer.player && String(t.gkPlayer.player.id) === String(pId)) count++;
             });
             return count;
         }
@@ -598,7 +585,7 @@
         }
 
         function updatePlayerFoot(id, foot) {
-            const p = participants.find(x => x.id == id);
+            const p = participants.find(x => String(x.id) === String(id));
             if(p) {
                 p.foot = foot;
                 saveData();
@@ -607,7 +594,7 @@
         }
 
         function updatePlayerClub(id, clubName) {
-            const p = participants.find(x => x.id == id);
+            const p = participants.find(x => String(x.id) === String(id));
             if(p) {
                 p.club = clubName;
                 saveData();
@@ -615,7 +602,7 @@
         }
 
         function togglePresence(id) {
-            const p = participants.find(x => x.id == id);
+            const p = participants.find(x => String(x.id) === String(id));
             if(p) {
                 p.present = !p.present;
                 saveData();
@@ -794,12 +781,12 @@
 
             let assignedIds = new Set();
             teams.forEach(t => {
-                t.players.forEach(p => { if(p && p.player) assignedIds.add(p.player.id); });
-                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
+                t.players.forEach(p => { if(p && p.player) assignedIds.add(String(p.player.id)); });
+                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(String(t.gkPlayer.player.id));
             });
 
             const unassigned = participants.filter(p => {
-                if(!p.present || assignedIds.has(p.id)) return false;
+                if(!p.present || assignedIds.has(String(p.id))) return false;
                 
                 const matchQuery = p.name.toLowerCase().includes(searchQuery) || p.school.toLowerCase().includes(searchQuery);
                 let matchPos = true;
@@ -840,7 +827,7 @@
                 return;
             }
             activeQuickAssignId = pId;
-            const p = participants.find(x => x.id == pId);
+            const p = participants.find(x => String(x.id) === String(pId));
             if(!p) return;
 
             document.getElementById('quick-assign-name').innerText = p.name;
@@ -874,7 +861,7 @@
 
         function assignPlayerDirectly(tIdx) {
             if(activeQuickAssignId === null) return;
-            const p = participants.find(x => x.id == activeQuickAssignId);
+            const p = participants.find(x => String(x.id) === String(activeQuickAssignId));
 
             if(p && teams[tIdx]) {
                 let existingCount = isPlayerInAnyTeam(p.id);
@@ -1151,8 +1138,8 @@
 
             let assignedIds = new Set();
             teams.forEach(t => {
-                t.players.forEach(p => { if(p && p.player) assignedIds.add(p.player.id); });
-                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
+                t.players.forEach(p => { if(p && p.player) assignedIds.add(String(p.player.id)); });
+                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(String(t.gkPlayer.player.id));
             });
 
             let available = participants.filter(p => {
@@ -1162,8 +1149,8 @@
             });
 
             available.sort((a, b) => {
-                const isAUnassigned = !assignedIds.has(a.id);
-                const isBUnassigned = !assignedIds.has(b.id);
+                const isAUnassigned = !assignedIds.has(String(a.id));
+                const isBUnassigned = !assignedIds.has(String(b.id));
                 const scoreA = a.passed ? 2 : (a.starred ? 1 : 0);
                 const scoreB = b.passed ? 2 : (b.starred ? 1 : 0);
 
@@ -1207,7 +1194,7 @@
         }
 
         function assignPlayerToSlot(pId) {
-            const player = participants.find(x => x.id == pId);
+            const player = participants.find(x => String(x.id) === String(pId));
             const { teamIndex, playerIndex, isGkSlot } = activeModalTarget;
 
             if(player && teamIndex !== null) {
@@ -1234,7 +1221,7 @@
         }
 
         function openProfileModal(id) {
-            const p = participants.find(x => x.id == id);
+            const p = participants.find(x => String(x.id) === String(id));
             if(!p) return;
 
             activeProfilePlayerId = id;
@@ -1301,7 +1288,7 @@
         function saveProfileChanges() {
             if(!activeProfilePlayerId) return;
 
-            const p = participants.find(x => x.id == activeProfilePlayerId);
+            const p = participants.find(x => String(x.id) === String(activeProfilePlayerId));
             if(p) {
                 p.foot = selectedProfileFoot;
                 p.club = document.getElementById('profile-club-input').value;
@@ -1396,7 +1383,7 @@
 
             const dataToExport = candidates.map((p, index) => ({
                 No: index + 1,
-                Nama: data.name,
+                Nama: p.name,
                 TTL: p.ttl,
                 "Asal Sekolah": p.school,
                 "No. HP": p.phone,
