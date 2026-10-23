@@ -1,519 +1,1487 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Seleksi Futsal - Tim Futsal Ponprov Kab. Kediri</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS (xlsx) untuk export ke Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-      .tab-content { display: none; }
-      .tab-content.active { display: block; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        #unassigned-drawer { transition: transform 0.3s ease-in-out; }
     </style>
-  </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
-    
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
+
     <!-- Header / Navbar -->
     <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md">
-      <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-          <div class="bg-emerald-500 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl text-base">SF</div>
-          <div>
-            <h1 class="text-lg font-bold text-slate-100">Sistem Seleksi Futsal</h1>
-            <p class="text-sm text-slate-400">Tim Futsal Ponprov Kab. Kediri</p>
-          </div>
+        <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-500 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl text-base tracking-wider shadow-md shadow-emerald-500/20">SF</div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-100">Sistem Seleksi Futsal</h1>
+                    <p class="text-sm text-slate-400">Tim Futsal Ponprov Kab. Kediri (Cloud Sync)</p>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex flex-wrap gap-2 justify-center" id="nav-tabs">
+                <button onclick="switchTab('presensi')" data-tab="presensi" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-emerald-600 text-white shadow-md shadow-emerald-900/40 flex items-center gap-2.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"/></svg>
+                    Presensi (<span id="badge-hadir">0</span>/40)
+                </button>
+                <button onclick="switchTab('rekap')" data-tab="rekap" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    Rekap Posisi
+                </button>
+                <button onclick="switchTab('teams')" data-tab="teams" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Kelola Tim
+                </button>
+                <button onclick="switchTab('matchup')" data-tab="matchup" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                    Kandidat (<span id="count-starred-badge">0</span>)
+                </button>
+            </nav>
         </div>
-
-        <!-- Indicator Sync -->
-        <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-          <span id="sync-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-          <span id="sync-status-text" class="text-slate-300 font-semibold">Connecting Cloud...</span>
-        </div>
-      </div>
     </header>
 
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-6 py-8">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-        
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 class="text-lg font-bold text-slate-100">Daftar Kehadiran Peserta</h2>
-            <p class="text-sm text-slate-400">Total Peserta Terdaftar: <span id="badge-total" class="font-bold text-emerald-400">0</span></p>
-          </div>
-          
-          <div class="flex flex-wrap gap-3">
-            <!-- TOMBOL INSTAN SUNTIK 254 DATA -->
-            <button id="btn-inject-data" type="button" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition shadow flex items-center gap-2">
-              ⚡ Masukkan 254 Data Excel
-            </button>
-            
-            <button id="btn-open-modal" type="button" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow">
-              + Tambah Peserta Baru
-            </button>
-          </div>
-        </div>
+        <!-- TAB 1: PRESENSI -->
+        <section id="tab-presensi" class="tab-content active space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100">Daftar Kehadiran Peserta (Admin)</h2>
+                        <p class="text-sm text-slate-400">Centang kehadiran, tanyakan Strongest Foot & Asal Klub saat peserta tiba.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2.5">
+                        <button onclick="setAllAttendance(true)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition">Centang Semua</button>
+                        <button onclick="setAllAttendance(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition">Reset Kehadiran</button>
+                        <button onclick="resetDummyData()" class="px-4 py-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border border-rose-900/50 rounded-xl text-sm font-semibold transition">Reset Data Dummy</button>
+                    </div>
+                </div>
 
-        <!-- Pencarian & Filter -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <input type="text" id="search-input" placeholder="Cari nama atau asal sekolah..." class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-500" />
-          <select id="filter-posisi" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-300">
-            <option value="">Semua Posisi</option>
-            <option value="GK">GK (Kiper)</option>
-            <option value="Anchor">Anchor</option>
-            <option value="Flank">Flank</option>
-            <option value="Pivot">Pivot</option>
-          </select>
-        </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <input type="text" id="search-input" oninput="renderPresensiTable()" placeholder="Cari nama atau asal sekolah..." class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-500">
+                    <select id="filter-posisi" onchange="renderPresensiTable()" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-300">
+                        <option value="">Semua Posisi</option>
+                        <option value="GK">GK (Kiper)</option>
+                        <option value="Anchor">Anchor</option>
+                        <option value="Flank">Flank</option>
+                        <option value="Pivot">Pivot</option>
+                    </select>
+                </div>
 
-        <!-- Tabel Peserta -->
-        <div class="overflow-x-auto rounded-xl border border-slate-800">
-          <table class="w-full text-left border-collapse text-sm">
-            <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
-              <tr>
-                <th class="p-4 w-12 text-center">No</th>
-                <th class="p-4">Nama Peserta</th>
-                <th class="p-4">Asal Sekolah</th>
-                <th class="p-4">No. HP</th>
-                <th class="p-4 text-center">Posisi</th>
-                <th class="p-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="presensi-table-body" class="divide-y divide-slate-800">
-              <tr>
-                <td colspan="6" class="p-4 text-center text-slate-500">Memuat data dari Firebase...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
+                            <tr>
+                                <th class="p-4">Nama Peserta</th>
+                                <th class="p-4">Asal Sekolah</th>
+                                <th class="p-4">No. HP</th>
+                                <th class="p-4 text-center">Posisi</th>
+                                <th class="p-4 text-center">Strongest Foot</th>
+                                <th class="p-4">Asal Klub</th>
+                                <th class="p-4 text-right w-24">Hadir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="presensi-table-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-      </div>
+        <!-- TAB 2: REKAP POSISI -->
+        <section id="tab-rekap" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Kiper (GK) Hadir</p>
+                    <h3 class="text-3xl font-extrabold text-emerald-400 mt-2" id="count-rekap-gk">0</h3>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Anchor Hadir</p>
+                    <h3 class="text-3xl font-extrabold text-sky-400 mt-2" id="count-rekap-anchor">0</h3>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Flank Hadir</p>
+                    <h3 class="text-3xl font-extrabold text-amber-400 mt-2" id="count-rekap-flank">0</h3>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Pivot Hadir</p>
+                    <h3 class="text-3xl font-extrabold text-purple-400 mt-2" id="count-rekap-pivot">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100">Daftar Lengkap Peserta Hadir (Rekap Admin)</h2>
+                        <p class="text-sm text-slate-400">Pengelompokan seluruh peserta hadir berdasarkan posisi untuk dicetak.</p>
+                    </div>
+                    <div>
+                        <button onclick="exportRekapExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-md shadow-emerald-900/40">
+                            <span>Cetak / Export Excel (.xlsx)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <select id="filter-rekap-posisi" onchange="renderRekapTable()" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-slate-300">
+                        <option value="">Semua Posisi (Termasuk GK)</option>
+                        <option value="GK">GK (Kiper)</option>
+                        <option value="Anchor">Anchor</option>
+                        <option value="Flank">Flank</option>
+                        <option value="Pivot">Pivot</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
+                            <tr>
+                                <th class="p-4 w-12 text-center">No</th>
+                                <th class="p-4">Nama Peserta</th>
+                                <th class="p-4">Asal Sekolah</th>
+                                <th class="p-4">No. HP</th>
+                                <th class="p-4 text-center">Posisi</th>
+                                <th class="p-4 text-center">Foot</th>
+                                <th class="p-4">Klub</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rekap-table-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: KELOLA TIM -->
+        <section id="tab-teams" class="tab-content space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100">Manajemen Pembagian Tim Match</h2>
+                        <p class="text-sm text-slate-400 mt-1">Admin: Atur rompi & nomor punggung | Pelatih: Tandai / evaluasi pemain.</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2.5 items-center">
+                        <button onclick="toggleUnassignedDrawer()" class="px-4 py-2.5 bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-300 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                            <span>Sisa Pemain</span>
+                            <span id="badge-unassigned-count" class="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-xs font-bold">0</span>
+                        </button>
+
+                        <button onclick="addNewManualTeam()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-sm transition">+ Tambah Tim Manual</button>
+
+                        <button onclick="generateTeams()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-900/40 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <span>Acak Tim Seimbang (Hadir)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="odd-warning" class="hidden p-4 bg-amber-950/40 border border-amber-900/50 rounded-xl text-amber-300 text-sm flex justify-between items-center">
+                    <span>Jumlah tim ganjil. Tambahkan 1 tim lagi agar semua tim memiliki pasangan bertanding.</span>
+                    <button onclick="addNewManualTeam()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 rounded-lg font-bold text-xs">Tambah Tim</button>
+                </div>
+
+                <div id="teams-grid-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            </div>
+        </section>
+
+        <!-- TAB 4: KANDIDAT -->
+        <section id="tab-matchup" class="tab-content space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100">Daftar Kandidat Terpilih</h2>
+                        <p class="text-sm text-slate-400">Hasil evaluasi Pelatih (Pemain Ditandai & Lolos Seleksi).</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="exportStarredExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow-md shadow-emerald-900/40">Export Excel (.xlsx)</button>
+                        <button onclick="exportStarred()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm transition">Export Text (.txt)</button>
+                    </div>
+                </div>
+
+                <div class="border border-emerald-900/50 bg-emerald-950/10 rounded-2xl overflow-hidden shadow-lg">
+                    <div class="bg-emerald-950/60 px-5 py-3.5 font-bold text-xs text-emerald-400 uppercase border-b border-emerald-900/50 flex justify-between items-center">
+                        <span>Pemain Lolos Seleksi (<span id="count-passed">0</span>)</span>
+                    </div>
+                    <div id="passed-list-container" class="divide-y divide-slate-800/60 text-sm"></div>
+                </div>
+
+                <div class="border border-amber-900/40 bg-amber-950/10 rounded-2xl overflow-hidden shadow-lg">
+                    <div class="bg-amber-950/50 px-5 py-3.5 font-bold text-xs text-amber-400 uppercase border-b border-amber-900/40 flex justify-between items-center">
+                        <span>Kandidat Ditandai (<span id="count-starred">0</span>)</span>
+                    </div>
+                    <div id="starred-list-container" class="divide-y divide-slate-800/60 text-sm"></div>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- MODAL TAMBAH PESERTA -->
-    <div id="modal-add-participant" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 class="font-bold text-base text-slate-100">Tambah Peserta Baru</h3>
-          <button id="btn-close-modal" type="button" class="text-slate-400 hover:text-slate-200 font-bold text-lg">&times;</button>
-        </div>
-        
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Lengkap *</label>
-            <input type="text" id="new-p-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" placeholder="Masukkan nama..." />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Asal Sekolah</label>
-            <input type="text" id="new-p-school" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" placeholder="Asal sekolah..." />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Nomor HP</label>
-            <input type="text" id="new-p-phone" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" placeholder="08xxxxxxxxxx" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Posisi</label>
-            <select id="new-p-pos" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
-              <option value="Flank">Flank</option>
-              <option value="Anchor">Anchor</option>
-              <option value="Pivot">Pivot</option>
-              <option value="GK">GK (Kiper)</option>
-            </select>
-          </div>
+    <!-- DRAWER SISA PEMAIN -->
+    <div id="drawer-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 hidden" onclick="toggleUnassignedDrawer()"></div>
+    <div id="unassigned-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-slate-900 border-l border-slate-800 z-50 shadow-2xl flex flex-col transform translate-x-full">
+        <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+            <div>
+                <h3 class="font-bold text-base text-slate-100">Daftar Sisa Pemain</h3>
+                <p class="text-xs text-slate-400">Pemain hadir yang belum masuk tim mana pun.</p>
+            </div>
+            <button onclick="toggleUnassignedDrawer()" class="text-slate-400 hover:text-slate-200 font-bold text-xl p-1">&times;</button>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button id="btn-cancel-modal" type="button" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Batal</button>
-          <button id="btn-save-participant" type="button" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-xl text-xs font-bold">Simpan Peserta</button>
+        <div class="p-4 border-b border-slate-800 space-y-3 bg-slate-900/50">
+            <input type="text" id="unassigned-search" oninput="renderUnassignedPlayers()" placeholder="Cari nama atau asal sekolah..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-emerald-500 text-slate-200 placeholder-slate-600">
+            <select id="unassigned-pos-filter" onchange="renderUnassignedPlayers()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                <option value="ALL">Semua Posisi</option>
+                <option value="FIELD">Khusus Lapangan</option>
+                <option value="GK">Khusus Kiper (GK)</option>
+            </select>
         </div>
-      </div>
+
+        <div id="unassigned-players-container" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
     </div>
 
-    <!-- FIREBASE SDK & APPLICATION LOGIC -->
+    <!-- Modal Quick Assign -->
+    <div id="modal-quick-assign" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="font-bold text-sm text-slate-100" id="quick-assign-name">-</h3>
+                    <p class="text-xs text-slate-400" id="quick-assign-pos">-</p>
+                </div>
+                <button onclick="closeQuickAssignModal()" class="text-slate-400 hover:text-slate-200 font-bold text-lg">&times;</button>
+            </div>
+            <div class="space-y-2">
+                <p class="text-xs font-semibold text-slate-300">Pilih Tim Tujuan:</p>
+                <div id="quick-assign-teams-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pindah/Tambah Pemain Manual -->
+    <div id="modal-select-player" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-base text-slate-100" id="modal-title">Pilih Peserta Masuk Tim</h3>
+                    <p class="text-xs text-slate-400">Prioritas: Pemain Sisa (Hadir)</p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-200 font-bold text-lg">&times;</button>
+            </div>
+            <input type="text" id="modal-search" oninput="renderModalPlayerList()" placeholder="Cari nama peserta..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-500">
+            <div id="modal-player-list" class="max-h-64 overflow-y-auto space-y-2 pr-1 text-sm"></div>
+        </div>
+    </div>
+
+    <!-- MODAL PROFIL PEMAIN -->
+    <div id="modal-player-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-5 shadow-2xl">
+            <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="font-bold text-lg text-slate-100 flex items-center gap-2">
+                        <span id="profile-name">-</span>
+                    </h3>
+                    <p class="text-xs text-slate-400" id="profile-school-ttl">-</p>
+                </div>
+                <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-200 font-bold text-xl">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950 border border-slate-800/80 p-3.5 rounded-xl">
+                <div>
+                    <span class="text-slate-500 block">Posisi Utama</span>
+                    <span id="profile-position" class="font-bold text-emerald-400 text-sm">-</span>
+                </div>
+                <div>
+                    <span class="text-slate-500 block">Nomor HP</span>
+                    <span id="profile-phone" class="font-medium text-slate-200">-</span>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Strongest Foot (Admin)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="setProfileFoot('Right')" id="foot-btn-Right" class="py-2.5 px-3 rounded-xl text-xs font-bold transition border border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800">Right (Kanan)</button>
+                        <button type="button" onclick="setProfileFoot('Left')" id="foot-btn-Left" class="py-2.5 px-3 rounded-xl text-xs font-bold transition border border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800">Left (Kiri)</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Asal Klub Pemain (Admin)</label>
+                    <input type="text" id="profile-club-input" placeholder="Masukkan nama asal klub atau 'Tanpa Klub'..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Catatan Khusus Evaluasi (Pelatih)</label>
+                    <textarea id="profile-notes-input" rows="3" placeholder="Tambahkan catatan performa, kelebihan, atau kekurangan dari pelatih..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-600"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Status Keputusan Seleksi (Pelatih)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" id="btn-status-none" onclick="setProfileStatus('NONE')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border"><span>Belum Ada</span></button>
+                        <button type="button" id="btn-status-starred" onclick="setProfileStatus('STARRED')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            <span>Ditandai</span>
+                        </button>
+                        <button type="button" id="btn-status-passed" onclick="setProfileStatus('PASSED')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Lolos</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button onclick="closeProfileModal()" class="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-semibold">Batal</button>
+                <button onclick="saveProfileChanges()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-xl text-xs font-bold">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Imports -->
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-      import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyDARoARtFkgQB-7J_mG_DDAcSIIwzVKaG8",
-        authDomain: "seleksi-futsal.firebaseapp.com",
-        projectId: "seleksi-futsal",
-        storageBucket: "seleksi-futsal.firebasestorage.app",
-        messagingSenderId: "135886803788",
-        appId: "1:135886803788:web:fc201b65cc8d3b879ff5e9"
-      };
+        // Ganti dengan firebaseConfig milikmu dari Firebase Console
+const firebaseConfig = {
+  apiKey: "AIzaSyDARoARtFkgQB-7J_mG_DDAcSIIwzVKaG8",
+  authDomain: "seleksi-futsal.firebaseapp.com",
+  projectId: "seleksi-futsal",
+  storageBucket: "seleksi-futsal.firebasestorage.app",
+  messagingSenderId: "135886803788",
+  appId: "1:135886803788:web:fc201b65cc8d3b879ff5e9",
+  measurementId: "G-TFWX83H103"
+};
 
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-      const docRef = doc(db, "futsal_data", "participants");
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-      let participantsList = [];
+        window.db = db;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
 
-      function setStatus(text, isGreen) {
-        document.getElementById("sync-status-text").innerText = text;
-        document.getElementById("sync-status-dot").className = `w-2.5 h-2.5 rounded-full ${isGreen ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`;
-      }
-
-      function renderTable() {
-        const tbody = document.getElementById("presensi-table-body");
-        const search = (document.getElementById("search-input").value || "").toLowerCase();
-        const filterPos = document.getElementById("filter-posisi").value || "";
-        
-        document.getElementById("badge-total").innerText = participantsList.length;
-
-        const filtered = participantsList.filter(p => {
-          const matchSearch = p.name.toLowerCase().includes(search) || p.school.toLowerCase().includes(search);
-          const matchPos = filterPos === "" || p.position === filterPos;
-          return matchSearch && matchPos;
-        });
-
-        if (filtered.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Tidak ada peserta yang cocok.</td></tr>`;
-          return;
+        // Panggil inisialisasi load data dari Firebase saat halaman dibuka
+        if (typeof window.initFirebaseApp === 'function') {
+            window.initFirebaseApp();
         }
+    </script>
 
-        tbody.innerHTML = "";
-        filtered.forEach((p, idx) => {
-          const tr = document.createElement("tr");
-          tr.className = "hover:bg-slate-800/50";
-          tr.innerHTML = `
-            <td class="p-4 text-center text-slate-500">${idx + 1}</td>
-            <td class="p-4 font-semibold text-slate-100">${p.name}</td>
-            <td class="p-4 text-slate-300">${p.school}</td>
-            <td class="p-4 text-slate-400">${p.phone}</td>
-            <td class="p-4 text-center"><span class="px-2 py-1 rounded bg-slate-800 text-xs font-bold">${p.position}</span></td>
-            <td class="p-4 text-right">
-              <button class="text-rose-400 hover:text-rose-300 text-xs font-bold btn-delete" data-id="${p.id}">Hapus</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
+    <!-- JavaScript Aplikasi -->
+    <script>
+        let participants = [];
+        let teams = []; 
 
-        document.querySelectorAll(".btn-delete").forEach(btn => {
-          btn.onclick = async (e) => {
-            const pId = e.target.getAttribute("data-id");
-            participantsList = participantsList.filter(item => item.id !== pId);
-            await setDoc(docRef, { list: participantsList });
-          };
-        });
-      }
+        let activeModalTarget = { teamIndex: null, playerIndex: null, isGkSlot: false };
+        let activeProfilePlayerId = null;
+        let activeQuickAssignId = null;
+        let selectedProfileStatus = 'NONE';
+        let selectedProfileFoot = 'Right';
 
-      // Realtime Listener
-      onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-          participantsList = docSnap.data().list || [];
-        } else {
-          participantsList = [];
-        }
-        renderTable();
-        setStatus("Live Cloud Active", true);
-      }, (err) => {
-        console.error(err);
-        setStatus("Cloud Connection Error", false);
-      });
-
-      // Filter & Search Events
-      document.getElementById("search-input").oninput = renderTable;
-      document.getElementById("filter-posisi").onchange = renderTable;
-
-      // Handle Modal
-      const modal = document.getElementById("modal-add-participant");
-      document.getElementById("btn-open-modal").onclick = () => modal.classList.remove("hidden");
-      document.getElementById("btn-close-modal").onclick = () => modal.classList.add("hidden");
-      document.getElementById("btn-cancel-modal").onclick = () => modal.classList.add("hidden");
-
-      // Handle Simpan Manual
-      document.getElementById("btn-save-participant").onclick = async () => {
-        const nameVal = document.getElementById("new-p-name").value.trim();
-        const schoolVal = document.getElementById("new-p-school").value.trim();
-        const phoneVal = document.getElementById("new-p-phone").value.trim();
-        const posVal = document.getElementById("new-p-pos").value;
-
-        if (!nameVal) {
-          alert("Nama wajib diisi!");
-          return;
-        }
-
-        participantsList.push({
-          id: 'p_' + Date.now(),
-          name: nameVal,
-          school: schoolVal || "-",
-          phone: phoneVal || "-",
-          position: posVal,
-          present: false
-        });
-
-        await setDoc(docRef, { list: participantsList });
-        document.getElementById("new-p-name").value = "";
-        document.getElementById("new-p-school").value = "";
-        document.getElementById("new-p-phone").value = "";
-        modal.classList.add("hidden");
-      };
-
-      // FUNGSI SUNTIK SEMUA 254 DATA EXCEL KE FIREBASE
-      document.getElementById("btn-inject-data").onclick = async () => {
-        if (!confirm("Apakah Anda yakin ingin memasukkan SEMUA 254 data peserta ke Firebase?")) return;
-
-        const fullExcelData = [
-          {"id": "p_1", "name": "Milano Ezar Narendra", "school": "MAN 2 Kota Kediri", "phone": "085174341080", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_2", "name": "Muhammad David Briand Irsyad", "school": "SMKN1 Kota Kediri", "phone": "085825208888", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_3", "name": "GASTONI VIKYAN WIDA SAPUTRA", "school": "SMAN 1 NGADILUWIH", "phone": "085123736141", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_4", "name": "Mohammad Dzikra Alfaathaya", "school": "MAN 1 kota Kediri", "phone": "085258825176", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_5", "name": "Bagaswara laksana prabu", "school": "Sman1ngadiluwih", "phone": "085852843525", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_6", "name": "BILLY NILA HERMAWAN", "school": "SMPN 1 Kandangan", "phone": "083846954697", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_7", "name": "DWI CAHYONO", "school": "SMKN 1 NGASEM", "phone": "085708453466", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_8", "name": "ILHAM MAULANA GHIFARI", "school": "MAN 3 KEDIRI", "phone": "082139063498", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_9", "name": "marvel wahyu permana", "school": "SMKN 1 KOTA KEDIRI", "phone": "081944604810", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_10", "name": "Davin Aditya", "school": "MTS ARRAHMAH", "phone": "085607858064", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_11", "name": "ALIF AJIB BAYHAQI", "school": "MAN 3 KEDIRI", "phone": "081515720649", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_12", "name": "Marcel Wahyu Perdana", "school": "SMK NEGERI 1 KEDIRI", "phone": "089514239797", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_13", "name": "AHMAD KHOIRUL RISKI", "school": "SMKN 1 GROGOL", "phone": "081330639025", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_14", "name": "NAUFAL AMMAR ZULFAN", "school": "SMAN 7 KEDIRI", "phone": "081515815958", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_15", "name": "DAVIN ADITYA", "school": "MTS ARRAHMAH", "phone": "085607858064", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_16", "name": "MUHAMMAD BADRUDIN", "school": "SMAN 1 PLEMAHAN", "phone": "085707361049", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_17", "name": "FRAHESA SAKA SAMUDERA", "school": "MAN 2 KOTA KEDIRI", "phone": "085706516624", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_18", "name": "YONATAN ALVIANO", "school": "SMAN 1 PLEMAHAN", "phone": "08139246758", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_19", "name": "ZADA JANUAR PUTRA", "school": "SMKN 1 NGASEM", "phone": "087830090638", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_20", "name": "WILDAN FATHURROHMAN", "school": "SMAN 1 GURAH", "phone": "081217638629", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_21", "name": "MOHAMMAD DAMAR JAGADDITA", "school": "SMAN 1 Kota Kediri", "phone": "082334051475", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_22", "name": "DJENAR SATRIA PRABANGSA", "school": "SMKN 1 KOTA KEDIRI", "phone": "085859842778", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_23", "name": "MUHAMMAD FAKHRI MAULANA", "school": "SMAN 2 PARE", "phone": "085784259002", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_24", "name": "SULTAN ZAJY", "school": "SMKN 1 SEMEN", "phone": "085136006841", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_25", "name": "Rolan hendar rachman", "school": "SMAN1GROGOL", "phone": "081993315235", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_26", "name": "VINO NAUFAL ANTONY", "school": "SMKN 1 KOTA KEDIRI", "phone": "085852626251", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_27", "name": "FAHAD AL ZAMZAMI", "school": "SMAN 1 NGADILUWIH", "phone": "085704909948", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_28", "name": "VINO NAUFAL ANTONY", "school": "SMKN 1 KOTA KEDIRI", "phone": "085852626251", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_29", "name": "AQIEL DANISH WALDAN MAURIST", "school": "SMPN 1 WATES", "phone": "085857124902", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_30", "name": "M.DINESH AREZA", "school": "SMAN 1 PLEMAHAN", "phone": "085708363459", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_31", "name": "YUAN ALVIANO PAMUNGKAS", "school": "SMAN 2 PARE", "phone": "087866720346", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_32", "name": "KAYTA ALKAUTSAR PUTRA MAULANA", "school": "SMAN 1 PARE", "phone": "081216459272", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_33", "name": "RAYHAN SYARIF AL WAHAB", "school": "SMKN 1 KEDIRI", "phone": "082330562225", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_34", "name": "RAYHAN SYARIF AL WAHAB", "school": "SMKN 1 KEDIRI", "phone": "082330562225", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_35", "name": "Bintang Liga Beryl Aditama", "school": "SMK Negeri 1 Kota Kediri", "phone": "082331641207", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_36", "name": "ADI CHANDRA PRASISTA", "school": "SMAN 1 PAPAR", "phone": "08818144268", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_37", "name": "ADI CHANDRA PRASISTA", "school": "SMAN 1 PAPAR", "phone": "08818144268", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_38", "name": "Mochamad Faza Fatihul Izza", "school": "SMAN 1 Pare", "phone": "085856951998", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_39", "name": "TANJAK RISQI WIBOWO", "school": "SMAN 8 KOTA KEDIRI", "phone": "0881036726252", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_40", "name": "AHMAD NAURIL FAIZIN", "school": "SMAN 1 PLEMAHAN", "phone": "085185975718", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_41", "name": "Nakhla Tirta Mahanipuna", "school": "SMPN 2 PARE", "phone": "081229763031", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_42", "name": "ALIFIAN RIZKY GILANG PRAYOGA", "school": "MTS ARRAHMAH", "phone": "085646834140", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_43", "name": "ROHID CHAMADA LUAYYIDDAQIQI", "school": "MAN 2 KAB.KEDIRI", "phone": "085704073119", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_44", "name": "ABRISAM YANUAR AYMAN", "school": "SMAN 1 PLEMAHAN", "phone": "085813414024", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_45", "name": "ADIKA DINARTHA CAKRANEGARA", "school": "SMAN 1 PARE", "phone": "082337120300", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_46", "name": "ABRISAM YANUAR AYMAN", "school": "SMAN 1 PLEMAHAN", "phone": "085813414024", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_47", "name": "Ozil Krisna pratama", "school": "Sman 6", "phone": "085646694625", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_48", "name": "ARSAVIN ANDRA PRATAMA", "school": "SMA NEGERI 1 PLEMAHAN", "phone": "085707166012", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_49", "name": "WIJDAAN ABIYASA SATYA NAGARA", "school": "MAN 4 KEDIRI", "phone": "085731254164", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_50", "name": "DHAMAR GAYUH NUGROHO", "school": "SMAN 1 PUNCU", "phone": "085655713382", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_51", "name": "DHAMAR GAYUH NUGROHO", "school": "SMAN 1 PUNCU", "phone": "085655714382", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_52", "name": "MUHAMMAD AZZAKY KEISHA PRATAMA", "school": "SMPN 1 GROGOL", "phone": "085649759598", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_53", "name": "ahmad nauril faizin", "school": "sman 1 plemahan", "phone": "085185975718", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_54", "name": "Prananda aditya", "school": "SMAN 1 PAPAR", "phone": "085604891589", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_55", "name": "RIZAL WILDAN KAMILIN", "school": "SMK PGRI 1", "phone": "085810875672", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_56", "name": "MUHAMMAD NUR HASAN", "school": "SMAN 1 NGADILUWIH", "phone": "085708077563", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_57", "name": "Ade Bagus Rohmad Hadi", "school": "SMA NEGERI 1 TALUN", "phone": "085655567602", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_58", "name": "AJI PRASETYO", "school": "SMAN 1 PUNCU", "phone": "082134264386", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_59", "name": "SALVERIO AXEL FERDIAN PRASETYA", "school": "SMPN 1 GROGOL", "phone": "085215227238", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_60", "name": "RAEHAN OKTA SAPUTRA", "school": "SMAN 6 KOTA KEDIRI", "phone": "085770733563", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_61", "name": "MUHAMMAD ADLY RAMADAN", "school": "MTS NEGERI 1 KEDIRI", "phone": "082333477873", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_62", "name": "RAFKA ROMEODIAN PUTRA", "school": "MAN 3 KEDIRI", "phone": "085852701127", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_63", "name": "RAFKA ROMEODIAN PUTRA", "school": "MAN 3 KEDIRI", "phone": "085852701127", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_64", "name": "MUHAMMAD FAKHRI MAULANA", "school": "SMAN 2 PARE", "phone": "085784259002", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_65", "name": "Kenzie Mahatma Wistara Dharma", "school": "SMAN 1 GROGOL", "phone": "085941342188", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_66", "name": "MUHAMMAD FARDAN HABIBI", "school": "SMAN 1 KANDAT", "phone": "082143353017", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_67", "name": "Vernanda Dwi Febriansyah", "school": "SMA NEGERI 1 KANDAT", "phone": "081233403618", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_68", "name": "Fadhil Farhan Al Faruq", "school": "MAN 2 KOTA KEDIRI", "phone": "087880130836", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_69", "name": "ROHID CHAMADA LUAYYIDDAQIQI", "school": "MAN 2 KAB.KEDIRI", "phone": "085704073119", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_70", "name": "ZIDAN HASYIM", "school": "MAN 2 KAB.KEDIRI", "phone": "085850151538", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_71", "name": "MOH FARID", "school": "SMAN 8 KEDIRI", "phone": "085655846115", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_72", "name": "REZA LEXIS ADITIYA", "school": "SMK PGRI 1 KASEMBON", "phone": "08133160307", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_73", "name": "JANUAR FREDI RADITYA", "school": "SMKN 1 NGASEM", "phone": "087866721384", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_74", "name": "MOCHAMMAD RIZKY AGUNG RADITYA", "school": "SMAN 1 KANDAT", "phone": "082132765847", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_75", "name": "MOCHAMMAD RIZKY AGUNG RADITYA", "school": "SMAN 1 KANDAT", "phone": "082132765847", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_76", "name": "JIBRIL AKBAR AURELIO ALI", "school": "SMA NEGERI 2 Kota Kediri", "phone": "082257562170", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_77", "name": "M. RAKA MANDALA PUTRA", "school": "SMAN 1 PURWOASRI", "phone": "#ERROR!", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_78", "name": "Sakti Agil Erno Sweke", "school": "SMK PGRI 1 Kediri", "phone": "085806035687", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_79", "name": "SULTAN ZAKY", "school": "SMKN 1 SEMEN", "phone": "085136006841", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_80", "name": "Ramadhani wynestio ragiel", "school": "Smpn 1 kota kediri", "phone": "085607773050", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_81", "name": "OCNIEL BEFAN ALERGA", "school": "SMKN 1 KOTA KEDIRI", "phone": "085804714088", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_82", "name": "ADITYA JUNIAN PRATAMA", "school": "SMKN 1 KEDIRI", "phone": "085732069385", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_83", "name": "Adrian Cahya Ramadhan", "school": "SMAN 6 KOTA KEDIRI", "phone": "085648346595", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_84", "name": "AQIL NAUFAL HISYAM", "school": "SMAN 8 KOTA KEDIRI", "phone": "085123023806", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_85", "name": "Muhammad Ziffano Assyaqif", "school": "SMAN 1 PLOSOKLATEN", "phone": "085745561015", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_86", "name": "ALIKA PUTRA SADIKIN", "school": "SMA DHARMA WANITA 1 PARE", "phone": "081357903293", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_87", "name": "GEOCY AURUM ATMOSFERO", "school": "SMAN 2 PARE", "phone": "083839238050", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_88", "name": "JUNANDA SALMAN ALFARISI", "school": "SMP Muhammadiyah 1 pare", "phone": "089530470622", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_89", "name": "HEMI PRAMUDIA", "school": "SMAN 7 KOTA KEDIRI", "phone": "087775706074", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_90", "name": "Eka Rafa nasrulloh", "school": "SMKN 1 NGASEM", "phone": "082229681839", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_91", "name": "Muhammad Reyhan Setiawan", "school": "SMK YP 17 PARE", "phone": "082141665986", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_92", "name": "ATYANTA PRAMUDITA AGNY PUTRA", "school": "SMKN 1 NGASEM KAB.KEDIRI", "phone": "081284510180", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_93", "name": "Agung sadha dharmawansa", "school": "SMKN 1 NGASEM", "phone": "085947580981", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_94", "name": "RENGGA RIANDRA YUDHAA PRAWIRA", "school": "SMK PEMBANGUNAN", "phone": "085746586841", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_95", "name": "yoga alfan febyan dana", "school": "SMK PEMBANGUNAN", "phone": "081232838136", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_96", "name": "REYSYA GALANG RAMADHANI", "school": "SMK PEMBANGUNAN KANDANGAN", "phone": "085655637394", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_97", "name": "M.YUSYA RIZALDI AIRLANGGA", "school": "SMKS PEMBANGUNAN", "phone": "085855074622", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_98", "name": "Aldi Khairul Fahmi", "school": "SMPN 1 PLEMAHAN", "phone": "085141152362", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_99", "name": "MUHAMMAD SULTONUDIN ASOBAIR", "school": "SMKN 1 KOTA KEDIRI", "phone": "085704074618", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_100", "name": "Rolan hendar rachman", "school": "SMAN 1 GROGOL", "phone": "081993315235", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_101", "name": "Thomas Aldi prayoga", "school": "SMK pembangunan", "phone": "085856441239", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_102", "name": "Maulana Al Fariz", "school": "SMPN 4 PARE", "phone": "085850942254", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_103", "name": "RAFFI CRISTIAN MAULANA", "school": "SMAN 1 PLEMAHAN", "phone": "081953002817", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_104", "name": "VASANTA KUSUMAKARA", "school": "SMAN 1 PAPAR", "phone": "083151065298", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_105", "name": "ALVINO", "school": "SMA NEGRI 1 PAPAR", "phone": "081548725910", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_106", "name": "MOHAMMAD RAZZAQ", "school": "SMA NEGRI 1 KANDANGAN", "phone": "085604872931", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_107", "name": "ROY NANDO DAFA HENDRY WIJAYA", "school": "SMAN 1 KANDANGAN", "phone": "085715302114", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_108", "name": "MUH.APRILLIANO VICKY DAVANDARU", "school": "SMAN7 KEDIRI", "phone": "08113333901", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_109", "name": "Moch. Syahril Valen Zakaria", "school": "SMKK BHAKTI WIYATA", "phone": "087814552864", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_110", "name": "panji aryo gumilang", "school": "SMAN 1 KANDANGAN", "phone": "085785106309", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_111", "name": "FINO AHMED ALONSO", "school": "SMAN 1 MOJO", "phone": "085808715155", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_112", "name": "ARGA CANDRA WIJAYA", "school": "SMAN 1 MOJO", "phone": "08155068160", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_113", "name": "KAFKA NAFISA ALFARISI", "school": "SMPN 2 PARE", "phone": "085854739640", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_114", "name": "Bagas Setiawan", "school": "SMAN 1 MOJO", "phone": "085854667084", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_115", "name": "REZHA NURDIANSYAH", "school": "SMKS PEMUDA PAPAR", "phone": "085755975128", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_116", "name": "ANJALI HABIBI MUHAMMAD", "school": "SMK KARTANEGARA WATES", "phone": "085736932274", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_117", "name": "Kamal Indra Firdaus", "school": "SMKN 1 Kediri", "phone": "082245682584", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_118", "name": "M. RAKA MANDALA PUTRA", "school": "SMAN 1 PURWOASRI", "phone": "#ERROR!", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_119", "name": "MOCH HILMI DIKI WAHYUDI", "school": "SMK PEMBANGUNAN KANDANGAN", "phone": "085785833568", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_120", "name": "Suryo Anggoro Putro", "school": "SMK TI PELITA NUSANTARA KEDIRI", "phone": "085731396422", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_121", "name": "FIRZAN ALKA NURIZAN", "school": "SMK PGRI 1 KOTA KEDIRI", "phone": "08138795413", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_122", "name": "Faturrochman al azizi", "school": "SMAN 1 PARE", "phone": "085755381936", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_123", "name": "Faturrochman al azizi", "school": "SMAN 1 PARE", "phone": "085755381936", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_124", "name": "MISBACH MAULIDIR RAYHAN", "school": "SMKN 1 KOTA KEDIRI", "phone": "085784675772", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_125", "name": "ALLANDI ADE FEBIAWAN", "school": "SMAN 1 PARE", "phone": "082228021406", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_126", "name": "Milano Ezar Narendra", "school": "MAN 2 Kota Kediri", "phone": "085174341080", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_127", "name": "FADHIL ADIKA WIDANA", "school": "SMKN 1 PLOSOKLATEN", "phone": "085854651447", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_128", "name": "DIMAS SATRIA WINATA", "school": "SMA NEGERI 1 GURAH", "phone": "082231124792", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_129", "name": "M.Rafa Al FARIZA PUTRA ARIYA", "school": "SMK ARRAHMAH", "phone": "085790676803", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_130", "name": "MARCHIANTON MAHAR CAHYA PAMUNGKAS", "school": "SMA MUHAMMADIYAH 1 CILACAP", "phone": "088215590164", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_131", "name": "DAVID MAGAI", "school": "SMP GERGAJI", "phone": "082181511325", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_132", "name": "DAVID MAGAI", "school": "SMP GERGAJI", "phone": "082181511325", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_133", "name": "MAULANA AL FARIZ", "school": "SMPN 4 PARE", "phone": "085850942254", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_134", "name": "GESANG KERTOJOYO", "school": "SMK ISLAM KUNJANG", "phone": "08133722514", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_135", "name": "Alvianza eka triwahyu ramadhani", "school": "smpn 2 puncu", "phone": "082135880477", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_136", "name": "MOH.RAFA ALMUGHITS FIRMANTO", "school": "SMAN 3 KOTA KEDIRI", "phone": "085852237030", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_137", "name": "Ahmad syifaul ibad", "school": "SMAN 1 Kandangan", "phone": "085604463930", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_138", "name": "ASYRAF AULIA DAVA EL GHIFAREL", "school": "SMPN 2 PARE", "phone": "085850056572", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_139", "name": "ASYRAF AULIA DAVA EL GHIFAREL", "school": "SMPN 2 PARE", "phone": "085850056572", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_140", "name": "ASYRAF AULIA DAVA EL GHIFAREL", "school": "SMPN 2 PARE", "phone": "085850056572", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_141", "name": "Muhammad Ghozi Al Fahrizi", "school": "SMAN 1 KANDAT", "phone": "087744452833", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_142", "name": "Marcellino permana putra", "school": "SMAN 1 KANDAT", "phone": "085936153525", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_143", "name": "Dhimas satya utama", "school": "smk bhakta wiyata", "phone": "085731593677", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_144", "name": "SATRIYA BIMA PRAWIRA", "school": "SMKN1PLOSOKLATEN", "phone": "085823163702", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_145", "name": "Mukhammad Ibra Al-Faizi", "school": "SMAN 4 KOTA KEDIRI", "phone": "081459022369", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_146", "name": "Muhammad Bintara Marchven Gunawan", "school": "MAN 1 Kota Kediri", "phone": "085704450910", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_147", "name": "Krishna Raditya Azhar", "school": "Man 1 Kota Kediri", "phone": "08155901228", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_148", "name": "MUHAMMAD GILANG KUSUMA", "school": "MAN 2 KOTA KEDIRI", "phone": "081282889851", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_149", "name": "Gadis Auryn Neva", "school": "SMKN 1 PLOSOKLATEN", "phone": "08135959119", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_150", "name": "RIZKY MAHA PUTRO", "school": "SMA DHARMA WANITA 1 PARE", "phone": "081249983913", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_151", "name": "RIZKY MAHA PUTRO", "school": "SMA DHARMA WANITA 1 PARE", "phone": "081249983913", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_152", "name": "ROHMAD BAYU SANTOSO", "school": "SMA DHARMA WANITA 1 PARE", "phone": "085648806675", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_153", "name": "JULIAN TRIANDA SYACHPUTRA", "school": "SMA NEGERI 1 PUNCU", "phone": "082333825107", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_154", "name": "Muhtarom Fahri Fahrozi", "school": "SMAN 1 GURAH", "phone": "082172402940", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_155", "name": "Egi dwi ardiansyah", "school": "MTSN 6KEDIRI", "phone": "082245172843", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_156", "name": "BENEDIKTUS FERNANDO", "school": "SMPN 2 PUNCU", "phone": "087840203640", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_157", "name": "ANDIKA DWI PRAYOGA", "school": "SMK AR-RAHMAH", "phone": "081615939149", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_158", "name": "Daffa Aufar Hasbi", "school": "SMAN 3 KOTA KEDIRI", "phone": "082143352432", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_159", "name": "Fiqhi ahmad Abdillah", "school": "SMAN 1 PAPAR", "phone": "0895711539993", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_160", "name": "DIAZ WIRABUANA MAKSUM", "school": "SMA NEGERI 1 KANDAT", "phone": "085608702937", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_161", "name": "ALDI WAHYU SAPUTRA", "school": "MAN4KEDIRI", "phone": "085746486351", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_162", "name": "DIAZ WIRABUANA MAKSUM", "school": "SMA NEGERI KANDAT 1", "phone": "085608702937", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_163", "name": "AWALI FAJAR IRSYADUDDIN", "school": "SMAN 1 KANDAT", "phone": "085707240187", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_164", "name": "ROHKMAD HARI WIBOWO", "school": "SMA DHARMA WANITA 1 PARE", "phone": "#ERROR!", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_165", "name": "ROHMAD BAYU SANTOSO", "school": "SMA DHARMA WANITA 1 PARE", "phone": "#ERROR!", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_166", "name": "AISYAH CANRANINGTAS", "school": "SMKN 1 PLOSOKLATEN", "phone": "085878082046", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_167", "name": "Reza Lexis aditiya", "school": "SMK PGRI KASEMBON", "phone": "08133160307", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_168", "name": "HAIKAL ALIF FIRMANSYAH", "school": "SMAN 1 PLEMAHAN", "phone": "085856545632", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_169", "name": "MOH FADLI AL-HUSAIN ARVIANATA", "school": "SMK AL HUDA", "phone": "085735829731", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_170", "name": "Ananda Cahya Pratama putra", "school": "SMK PGRI 1 Kediri", "phone": "085786156695", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_171", "name": "Alexandro Farrelio Arbi Trisulo", "school": "SMAN 1 Pare", "phone": "082229962565", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_172", "name": "MOHAMMAD RIDHO PAMUNGKAS", "school": "SMAN 1 MOJO", "phone": "081330282461", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_173", "name": "RAFA AKHWAN SANI", "school": "SMAN 1 PARE", "phone": "081252496255", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_174", "name": "RISKY FASA RAMADHAN", "school": "SMKN 1 NGASEM", "phone": "085806746165", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_175", "name": "Mohammad Fariel Firdaus", "school": "SMAN 4 KEDIRI", "phone": "085735830309", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_176", "name": "Darrel Raditya Gantari Putra Pradana", "school": "MAN 4 KEDIRI", "phone": "085648630944", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_177", "name": "mario sakti pamungkass", "school": "SMA1 Plemahan", "phone": "085604274458", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_178", "name": "MOHAMMAD YAFIS IVAN NABITA", "school": "SMAN I PLEMAHAN", "phone": "085857190212", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_179", "name": "Josheep Valentino Kurnia Putra Ngara", "school": "SMAN 1 GURAH", "phone": "087849707769", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_180", "name": "Syafi' sadidaturrahman", "school": "SMA 1 PARE", "phone": "#ERROR!", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_181", "name": "Faturrochman al azizi", "school": "SMAN 1 PARE", "phone": "085755281936", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_182", "name": "M.ASROR ALI MA'RUF", "school": "SMK PGRI 1 KOTA KEDIRI", "phone": "0895385285883", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_183", "name": "HAFIZ PRASETYA", "school": "SMKN 1 PLOSOKLATEN", "phone": "083168081575", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_184", "name": "ANDITA RANGGA PRATAMA", "school": "SMKN 1 PLOSOKLATEN", "phone": "085850964859", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_185", "name": "KRISBIAN ARIA APRILIO", "school": "SMKN 1 PLOSOKLATEN", "phone": "085607477363", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_186", "name": "M.afiq Madani kaisar", "school": "Man 3 Blitar", "phone": "085745320397", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_187", "name": "M IRKHAM TAHTA ALFINO SALIM", "school": "Man 3 blitar", "phone": "96627938", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_188", "name": "Ezra lintang tetuko", "school": "SMKN 1 PLOSOKLATEN", "phone": "081997508546", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_189", "name": "Ferdy Pratama", "school": "SMKN 1 Ngasem", "phone": "081216571069", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_190", "name": "muhammad aufaa habibi alfaza", "school": "smp muhammadiyah 1 pare", "phone": "085707768617", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_191", "name": "RINGGA TARIKSA YOSELIN", "school": "SMAN 1 PLEMAHAN", "phone": "085648530353", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_192", "name": "WAHYUISA TRYSANCA", "school": "SMAN 6 KEDIRI", "phone": "085236711173", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_193", "name": "AHMAD HAZIQ WAHYUDI", "school": "SMAN 1 KANDANGAN", "phone": "081249201141", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_194", "name": "AHMAD IBRAHIM MOFID", "school": "SMA NEGERI 1 KANDANGAN", "phone": "085745526941", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_195", "name": "MUHAMMAD REFAN KHOIRUL HUDA", "school": "MTSn 1 kediri", "phone": "085725065019", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_196", "name": "CHOIRINAS YUDISTIA MAULANA AKBAR", "school": "SMAN 1 KANDANGAN", "phone": "085730745706", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_197", "name": "Handika feri kurniawan", "school": "SMAN 1purwoasri", "phone": "082232122987", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_198", "name": "BAIHAQI KHAIZAN", "school": "SMAN 1 PARE", "phone": "082143360411", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_199", "name": "Muhammad Syaifun Nadif", "school": "SMAN 1 SRENGAT", "phone": "08133057504", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_200", "name": "M.FALIH AL AZKA", "school": "SMA MUH 7 YK", "phone": "088991806084", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_201", "name": "radhitya agastha putra arandri", "school": "sman 1 pare", "phone": "082245806151", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_202", "name": "REIZHANTA ZEFANYA CHRISTOVERA", "school": "SMAN 1 GROGOL", "phone": "082292557683", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_203", "name": "AHMAD MUSTOFA", "school": "SMK CANDA BHIRAWA", "phone": "085706007565", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_204", "name": "TEGAR SATRIO PAMBUDI", "school": "MAN 3 KEDIRI", "phone": "087778289076", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_205", "name": "MUHAMMAD RIZAL ALVASANO", "school": "MAN 1 KOTA KEDIRI", "phone": "085785800742", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_206", "name": "Samsul hadi", "school": "Ma Ma'arif Udanawu", "phone": "085856985507", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_207", "name": "MOHAMMAD FARIEL FIRDAUS", "school": "SMAN 4 KEDIRI", "phone": "085735830309", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_208", "name": "NAFIS WIRAATMAJA PRABA LAKSONO", "school": "SMA NEGERI 1 PARE", "phone": "087848924551", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_209", "name": "SATRIA AGHA HAMIZAN IFTIKHAR", "school": "SMAN 1 PARE", "phone": "085857585739", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_210", "name": "MOCH HILMI DIKI WAHYUDI", "school": "SMK PEMBANGUNAN KANDANGAN", "phone": "085785833568", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_211", "name": "AZRIL ERVALNHO HIDAYAT", "school": "MAN 2 KEDIRI", "phone": "083116007796", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_212", "name": "Muhamad Victor Ardiansyah", "school": "SMAN 1GURAH", "phone": "085731480852", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_213", "name": "MUHAMMAD ILMAN ZUHRI ZULQARNAIN", "school": "MAN 4 KEDIRI", "phone": "085790656812", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_214", "name": "Ibrahim Putra Rivandika", "school": "SMK Budi Utomo Jombang", "phone": "083160770378", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_215", "name": "FABYAN ACHMAD AZIZI", "school": "SMAN 1 PARE", "phone": "085812420836", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_216", "name": "RAKA BAGAS PAKUSADEWA", "school": "SMA NEGERI 1 PARE", "phone": "085707281107", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_217", "name": "DANISH DANIAL HERYA LAKSANA", "school": "SMAN 1 PARE", "phone": "085755943155", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_218", "name": "ALFAZRI KEVINZIO GYBRAND", "school": "SMPN 2 KEPUNG", "phone": "-", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_219", "name": "RAMDHAN FADHILLAH PRAWIRA", "school": "SMPN 4 PARE", "phone": "085604076028", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_220", "name": "NAGATTA KENZHA MARDIANSYAH", "school": "SMPN 4 Pare", "phone": "085861291486", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_221", "name": "M. Alif Fauzi Abdillah", "school": "SMK YP 17 PARE", "phone": "087711084503", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_222", "name": "Rizky Nur Hidayat", "school": "SMK YP 17 PARE", "phone": "087745523306", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_223", "name": "Rizky Nur Hidayat", "school": "SMK YP 17 PARE", "phone": "087745523306", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_224", "name": "FAREL KENZZO PRADEVTA", "school": "SMPN 4 PARE", "phone": "081216556992", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_225", "name": "Mohamad arif", "school": "SMKN 1Plosoklaten", "phone": "085655847408", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_226", "name": "MOHAMAD ARIF", "school": "SMKN 1 PLOSOKLATEN", "phone": "085655847408", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_227", "name": "Alfathan Julio Putra Wahyudi", "school": "SMAN 1 PARE", "phone": "0881036483488", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_228", "name": "AHMAD MUSTOFA", "school": "SMK CANDA BHIRAWA", "phone": "085706007565", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_229", "name": "MUHAMMAD FADLIL VALENTINO", "school": "SMK BHATI MULIA PARE", "phone": "085746482367", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_230", "name": "MUHAMMAD FADLIL VALENTINO", "school": "SMK BHATI MULIA PARE", "phone": "085746482367", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_231", "name": "ROLAN HENDAR RACHMAN", "school": "SMAN 1 GROGOL", "phone": "081993315235", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_232", "name": "RAYHAN SYARIF AL WAHAB", "school": "SMKN 1 KEDIRI", "phone": "082330562225", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_233", "name": "Adi Chandra Prasista", "school": "Sman 1 papar", "phone": "08818144268", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_234", "name": "Ahmad Farhan Halan Kusuma", "school": "SMA NEGERI 2 PARE", "phone": "081252892817", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_235", "name": "MOH FARID", "school": "SMAN 8 KEDIRI", "phone": "085655846115", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_236", "name": "Reno Argiawan Sonny Abdillah", "school": "SMAN 1 PURWOASRI", "phone": "082257489105", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_237", "name": "LUKMANUL HAKIM M.A", "school": "SMK CANDA BHIRAWA", "phone": "085743512951", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_238", "name": "TUMENGGUNG SYAH PAHLEVI", "school": "SMKS KARTANEGARA WATES", "phone": "081232022355", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_239", "name": "TITIS WIKA PUTRA", "school": "SMK 17 PARE", "phone": "085865161498", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_240", "name": "AHMAD DICKY ERFIANDI", "school": "SMAN 1 GURAH", "phone": "085850168875", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_241", "name": "M.ulil Fauzi", "school": "SMK yp 17 pare", "phone": "082257280274", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_242", "name": "M.ulil Fauzi", "school": "SMK yp 17 pare", "phone": "082257280274", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_243", "name": "Reyndra Wisnu Wardana", "school": "SMKN 2 Kota Kediri", "phone": "085736674052", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_244", "name": "PRAVASVARA BENTAR RAMPODIKA", "school": "SMK CANDA BHIRAWA", "phone": "085733532017", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_245", "name": "REZA MAULANA", "school": "SMK CANDA BHIRAWA PARE", "phone": "085730678900", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_246", "name": "FRENNO VEDAT FANDOYO PRATAMA", "school": "MAN 1 KOTA KEDIRI", "phone": "081234367444", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_247", "name": "Muhammad Ridwan", "school": "SMAN 1 GURAH", "phone": "085730030972", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_248", "name": "FLAVIO FARHAN NUGROHO", "school": "SMAN 1 WATES", "phone": "085706346322", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_249", "name": "Syirif alsunan", "school": "SMPN 1 PELEMAHAN", "phone": "082141604038", "position": "Anchor", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_250", "name": "Axcelino joan syah putra", "school": "MAN 1 KOTA KEDIRI", "phone": "087727736640", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_251", "name": "yeftaa rikbal Agus pratama", "school": "SMP negri 4 pare", "phone": "08951704586", "position": "Flank", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_252", "name": "Fawwas Akbar Azaidan", "school": "SMAN 1 GURAH", "phone": "082115843263", "position": "Pivot", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_253", "name": "ACHMAD HILDAN PRIANSYAH", "school": "SMKN 1 KOTA KEDIRI", "phone": "087822419071", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""},
-          {"id": "p_254", "name": "Ahmad faza fanani", "school": "Sman 1 pare", "phone": "085602810251", "position": "GK", "present": false, "foot": "Right", "club": "", "starred": false, "passed": false, "notes": ""}
+        const VEST_COLORS = [
+            { id: "red", name: "Merah", colorClass: "bg-red-500", cardBg: "bg-red-950/20", border: "border-red-600/80", headerBg: "bg-red-600/30", text: "text-red-400", badge: "bg-red-500 text-slate-950" },
+            { id: "blue", name: "Biru", colorClass: "bg-blue-500", cardBg: "bg-blue-950/20", border: "border-blue-600/80", headerBg: "bg-blue-600/30", text: "text-blue-400", badge: "bg-blue-500 text-slate-950" },
+            { id: "green", name: "Hijau", colorClass: "bg-emerald-500", cardBg: "bg-emerald-950/20", border: "border-emerald-600/80", headerBg: "bg-emerald-600/30", text: "text-emerald-400", badge: "bg-emerald-500 text-slate-950" },
+            { id: "yellow", name: "Kuning", colorClass: "bg-amber-400", cardBg: "bg-amber-950/20", border: "border-amber-500/80", headerBg: "bg-amber-500/30", text: "text-amber-300", badge: "bg-amber-400 text-slate-950" },
+            { id: "orange", name: "Oranye", colorClass: "bg-orange-500", cardBg: "bg-orange-950/20", border: "border-orange-600/80", headerBg: "bg-orange-600/30", text: "text-orange-400", badge: "bg-orange-500 text-slate-950" },
+            { id: "pink", name: "Pink", colorClass: "bg-pink-500", cardBg: "bg-pink-950/20", border: "border-pink-600/80", headerBg: "bg-pink-600/30", text: "text-pink-400", badge: "bg-pink-500 text-slate-950" },
+            { id: "purple", name: "Ungu", colorClass: "bg-purple-500", cardBg: "bg-purple-950/20", border: "border-purple-600/80", headerBg: "bg-purple-600/30", text: "text-purple-400", badge: "bg-purple-500 text-white" },
+            { id: "cyan", name: "Cyan", colorClass: "bg-cyan-400", cardBg: "bg-cyan-950/20", border: "border-cyan-500/80", headerBg: "bg-cyan-500/30", text: "text-cyan-300", badge: "bg-cyan-400 text-slate-950" },
+            { id: "black", name: "Hitam", colorClass: "bg-slate-900 border border-slate-700", cardBg: "bg-slate-950", border: "border-slate-700", headerBg: "bg-slate-800/80", text: "text-slate-300", badge: "bg-slate-800 text-slate-200 border border-slate-600" },
+            { id: "white", name: "Putih", colorClass: "bg-slate-100", cardBg: "bg-slate-900/60", border: "border-slate-400/80", headerBg: "bg-slate-200/20", text: "text-slate-100", badge: "bg-slate-100 text-slate-950" }
         ];
 
-        await setDoc(docRef, { list: fullExcelData });
-        alert("✅ BERHASIL! SEMUA 254 data peserta telah masuk ke Firebase!");
-      };
+        function initDummyData() {
+            const firstNames = ["Ahmad", "Muhammad", "Rizky", "Dimas", "Fajar", "Bayu", "Reza", "Yoga", "Aditya", "Fikri", "Ilham", "Diki", "Galih", "Hafiz", "Iqbal", "Joko", "Kevin", "Lukman", "Naufal", "Pratama"];
+            const lastNames = ["Pratama", "Saputra", "Firmansyah", "Nugroho", "Santoso", "Hidayat", "Ramadhan", "Maulana", "Kurniawan", "Setiawan", "Wibowo", "Putra", "Fauzi", "Hakim", "Zulfikar", "Al Farizi", "Gunawan", "Effendi", "Siregar", "Utomo"];
+            const schools = ["SMA Negeri 1", "SMA Negeri 2", "SMA Negeri 3", "SMA Negeri 5", "SMA Swasta Mandiri", "SMK Telkom", "SMK Negeri 4", "MA Al-Hikmah"];
+            const positions = ["GK", "Anchor", "Flank", "Flank", "Pivot"];
+
+            let list = [];
+            for (let i = 1; i <= 40; i++) {
+                let name = `${firstNames[(i - 1) % firstNames.length]} ${lastNames[(i * 3) % lastNames.length]}`;
+                let pos = positions[(i - 1) % positions.length];
+                list.push({
+                    id: i,
+                    name: name,
+                    ttl: `Kediri, ${10 + (i % 15)}-0${(i % 9) + 1}-2008`,
+                    school: schools[i % schools.length],
+                    phone: `0812${Math.floor(10000000 + Math.random() * 90000000)}`,
+                    position: pos,
+                    foot: "Right",
+                    club: "", 
+                    present: i <= 32,
+                    starred: false, 
+                    passed: false, 
+                    notes: ""
+                });
+            }
+            return list;
+        }
+
+        async function loadData() {
+            try {
+                if (window.db) {
+                    const docRef = window.doc(window.db, "futsal_db", "state");
+                    const docSnap = await window.getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        participants = data.participants || initDummyData();
+                        teams = data.teams || [];
+                    } else {
+                        participants = initDummyData();
+                        teams = [];
+                        generateTeams();
+                        await saveData();
+                    }
+                } else {
+                    participants = initDummyData();
+                    teams = [];
+                    generateTeams();
+                }
+            } catch (e) {
+                console.error("Gagal memuat dari Firebase, menggunakan dummy:", e);
+                participants = initDummyData();
+                teams = [];
+            }
+
+            if(teams.length === 0) {
+                generateTeams();
+            }
+            refreshAllViews();
+        }
+
+        async function saveData() {
+            try {
+                if (window.db) {
+                    const docRef = window.doc(window.db, "futsal_db", "state");
+                    await window.setDoc(docRef, { participants, teams });
+                }
+            } catch (e) {
+                console.error("Gagal menyimpan ke Firebase:", e);
+            }
+            updateBadges();
+        }
+
+        window.initFirebaseApp = function() {
+            loadData();
+        }
+
+        function resetDummyData() {
+            if(confirm("Reset semua data kembali ke data dummy awal?")) {
+                participants = initDummyData();
+                teams = [];
+                generateTeams();
+                saveData();
+                refreshAllViews();
+            }
+        }
+
+        function switchTab(tabID) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-600', 'text-white', 'shadow-md', 'shadow-emerald-900/40');
+                btn.classList.add('bg-slate-800', 'text-slate-300', 'hover:bg-slate-700');
+            });
+
+            document.getElementById(`tab-${tabID}`).classList.add('active');
+            const activeBtn = document.querySelector(`[data-tab="${tabID}"]`);
+            if(activeBtn) {
+                activeBtn.classList.remove('bg-slate-800', 'text-slate-300', 'hover:bg-slate-700');
+                activeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-md', 'shadow-emerald-900/40');
+            }
+
+            if(tabID === 'rekap') renderRekap();
+            if(tabID === 'teams') renderTeams();
+            if(tabID === 'matchup') renderStarredList();
+        }
+
+        function updateBadges() {
+            const presentCount = participants.filter(p => p.present).length;
+            const candidateCount = participants.filter(p => p.starred || p.passed).length;
+
+            let assignedIds = new Set();
+            teams.forEach(t => {
+                t.players.forEach(p => { if(p && p.player) assignedIds.add(p.player.id); });
+                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
+            });
+
+            const unassignedCount = participants.filter(p => p.present && !assignedIds.has(p.id)).length;
+
+            const badge = document.getElementById('badge-hadir');
+            const badgeStarred = document.getElementById('count-starred-badge');
+            const badgeUnassigned = document.getElementById('badge-unassigned-count');
+
+            if(badge) badge.innerText = presentCount;
+            if(badgeStarred) badgeStarred.innerText = candidateCount;
+            if(badgeUnassigned) badgeUnassigned.innerText = unassignedCount;
+        }
+
+        function toggleUnassignedDrawer() {
+            const drawer = document.getElementById('unassigned-drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            if(drawer.classList.contains('translate-x-full')) {
+                drawer.classList.remove('translate-x-full');
+                backdrop.classList.remove('hidden');
+                renderUnassignedPlayers();
+            } else {
+                drawer.classList.add('translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        }
+
+        function getStatusIcon(p) {
+            if(p.passed) {
+                return `<svg class="w-4 h-4 text-emerald-400 inline-block shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" title="Lolos Seleksi"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+            } else if(p.starred) {
+                return `<svg class="w-4 h-4 text-amber-400 inline-block shrink-0" fill="currentColor" viewBox="0 0 24 24" title="Ditandai Pelatih"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+            }
+            return '';
+        }
+
+        function toggleStarOnly(id) {
+            const p = participants.find(x => x.id === id);
+            if(p) {
+                p.starred = !p.starred;
+                if(p.starred) p.passed = false;
+                saveData();
+                refreshAllViews();
+            }
+        }
+
+        function togglePassOnly(id) {
+            const p = participants.find(x => x.id === id);
+            if(p) {
+                p.passed = !p.passed;
+                if(p.passed) p.starred = false;
+                saveData();
+                refreshAllViews();
+            }
+        }
+
+        function removeCandidateStatus(id) {
+            const p = participants.find(x => x.id === id);
+            if(p) {
+                p.starred = false;
+                p.passed = false;
+                saveData();
+                refreshAllViews();
+            }
+        }
+
+        function isPlayerInAnyTeam(pId) {
+            let count = 0;
+            teams.forEach(t => {
+                t.players.forEach(slot => { if(slot && slot.player && slot.player.id === pId) count++; });
+                if(t.gkPlayer && t.gkPlayer.player && t.gkPlayer.player.id === pId) count++;
+            });
+            return count;
+        }
+
+        function renderPresensiTable() {
+            const tbody = document.getElementById('presensi-table-body');
+            if(!tbody) return;
+            
+            const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+            const filterPos = document.getElementById('filter-posisi')?.value || '';
+
+            tbody.innerHTML = '';
+
+            const filtered = participants.filter(p => {
+                const matchSearch = p.name.toLowerCase().includes(search) || p.school.toLowerCase().includes(search) || (p.club && p.club.toLowerCase().includes(search));
+                const matchPos = filterPos === '' || p.position === filterPos;
+                return matchSearch && matchPos;
+            });
+
+            filtered.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/50 transition cursor-pointer";
+                tr.innerHTML = `
+                    <td class="p-4 font-semibold text-slate-100 flex items-center gap-2" onclick="openProfileModal(${p.id})">
+                        <span class="hover:underline">${p.name}</span>
+                        ${getStatusIcon(p)}
+                    </td>
+                    <td class="p-4 text-slate-300" onclick="openProfileModal(${p.id})">${p.school}</td>
+                    <td class="p-4 text-slate-400" onclick="openProfileModal(${p.id})">${p.phone}</td>
+                    <td class="p-4 text-center" onclick="openProfileModal(${p.id})">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            p.position === 'GK' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/50' :
+                            p.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
+                            p.position === 'Flank' ? 'bg-amber-950/60 text-amber-400 border border-amber-900/50' :
+                            'bg-purple-950/60 text-purple-400 border border-purple-900/50'
+                        }">${p.position}</span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <div class="inline-flex rounded-lg bg-slate-950 p-1 border border-slate-800 text-xs">
+                            <button onclick="updatePlayerFoot(${p.id}, 'Right')" class="px-3 py-1 rounded-md transition font-semibold ${p.foot === 'Right' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}">Right</button>
+                            <button onclick="updatePlayerFoot(${p.id}, 'Left')" class="px-3 py-1 rounded-md transition font-semibold ${p.foot === 'Left' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}">Left</button>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <input type="text" value="${p.club || ''}" placeholder="Isi klub..." onchange="updatePlayerClub(${p.id}, this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 w-32 placeholder-slate-600">
+                    </td>
+                    <td class="p-4 text-right">
+                        <input type="checkbox" ${p.present ? 'checked' : ''} onchange="togglePresence(${p.id})" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updatePlayerFoot(id, foot) {
+            const p = participants.find(x => x.id === id);
+            if(p) {
+                p.foot = foot;
+                saveData();
+                renderPresensiTable();
+            }
+        }
+
+        function updatePlayerClub(id, clubName) {
+            const p = participants.find(x => x.id === id);
+            if(p) {
+                p.club = clubName;
+                saveData();
+            }
+        }
+
+        function togglePresence(id) {
+            const p = participants.find(x => x.id === id);
+            if(p) {
+                p.present = !p.present;
+                saveData();
+                renderPresensiTable();
+            }
+        }
+
+        function setAllAttendance(status) {
+            participants.forEach(p => p.present = status);
+            saveData();
+            renderPresensiTable();
+        }
+
+        function renderRekap() {
+            const gkHadir = participants.filter(p => p.present && p.position === 'GK');
+            const anchors = participants.filter(p => p.present && p.position === 'Anchor');
+            const flanks = participants.filter(p => p.present && p.position === 'Flank');
+            const pivots = participants.filter(p => p.present && p.position === 'Pivot');
+
+            document.getElementById('count-rekap-gk').innerText = gkHadir.length;
+            document.getElementById('count-rekap-anchor').innerText = anchors.length;
+            document.getElementById('count-rekap-flank').innerText = flanks.length;
+            document.getElementById('count-rekap-pivot').innerText = pivots.length;
+
+            renderRekapTable();
+        }
+
+        function renderRekapTable() {
+            const tbody = document.getElementById('rekap-table-body');
+            const filterPos = document.getElementById('filter-rekap-posisi')?.value || '';
+            if(!tbody) return;
+
+            let presentList = participants.filter(p => p.present && (filterPos === '' || p.position === filterPos));
+            
+            presentList.sort((a, b) => {
+                let scoreA = a.passed ? 2 : (a.starred ? 1 : 0);
+                let scoreB = b.passed ? 2 : (b.starred ? 1 : 0);
+                return scoreB - scoreA;
+            });
+
+            tbody.innerHTML = '';
+            if(presentList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 text-sm">Tidak ada peserta hadir.</td></tr>`;
+                return;
+            }
+
+            presentList.forEach((p, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = `transition cursor-pointer ${
+                    p.passed ? 'bg-emerald-950/20 hover:bg-emerald-950/30 border-l-4 border-emerald-500' :
+                    p.starred ? 'bg-amber-950/20 hover:bg-amber-950/30 border-l-4 border-amber-500' :
+                    'hover:bg-slate-800/50'
+                }`;
+                tr.innerHTML = `
+                    <td class="p-4 text-center text-slate-500 font-mono" onclick="openProfileModal(${p.id})">${idx + 1}</td>
+                    <td class="p-4 font-semibold text-slate-100 flex items-center gap-2" onclick="openProfileModal(${p.id})">
+                        <span class="hover:underline">${p.name}</span>
+                        ${getStatusIcon(p)}
+                    </td>
+                    <td class="p-4 text-slate-300" onclick="openProfileModal(${p.id})">${p.school}</td>
+                    <td class="p-4 text-slate-400" onclick="openProfileModal(${p.id})">${p.phone}</td>
+                    <td class="p-4 text-center" onclick="openProfileModal(${p.id})">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            p.position === 'GK' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/50' :
+                            p.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
+                            p.position === 'Flank' ? 'bg-amber-950/60 text-amber-400 border border-amber-900/50' :
+                            'bg-purple-950/60 text-purple-400 border border-purple-900/50'
+                        }">${p.position}</span>
+                    </td>
+                    <td class="p-4 text-center font-bold text-slate-300" onclick="openProfileModal(${p.id})">${p.foot || 'Right'}</td>
+                    <td class="p-4 text-slate-400" onclick="openProfileModal(${p.id})">${p.club || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportRekapExcel() {
+            let presentList = participants.filter(p => p.present);
+            presentList.sort((a, b) => {
+                let scoreA = a.passed ? 2 : (a.starred ? 1 : 0);
+                let scoreB = b.passed ? 2 : (b.starred ? 1 : 0);
+                return scoreB - scoreA;
+            });
+
+            const dataToExport = presentList.map((p, index) => ({
+                No: index + 1,
+                Nama: p.name,
+                TTL: p.ttl,
+                "Asal Sekolah": p.school,
+                "No. HP": p.phone,
+                Posisi: p.position,
+                "Strongest Foot": p.foot || "Right",
+                Klub: p.club || "-",
+                Catatan: p.notes || "-",
+                Status: p.passed ? "Lolos" : (p.starred ? "Ditandai" : "Belum Keputusan")
+            }));
+            
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Peserta Hadir");
+            XLSX.writeFile(workbook, "Rekap_Peserta_Hadir_Futsal.xlsx");
+        }
+
+        function generateTeams() {
+            const presentPlayers = participants.filter(p => p.present);
+
+            const gkHadir = shuffleArray(presentPlayers.filter(p => p.position === 'GK'));
+            const anchors = shuffleArray(presentPlayers.filter(p => p.position === 'Anchor'));
+            const flanks = shuffleArray(presentPlayers.filter(p => p.position === 'Flank'));
+            const pivots = shuffleArray(presentPlayers.filter(p => p.position === 'Pivot'));
+
+            const totalField = anchors.length + flanks.length + pivots.length;
+            let numTeams = Math.ceil(totalField / 4);
+            if(numTeams < 1) numTeams = 1;
+
+            if (numTeams % 2 !== 0 && numTeams > 1) {
+                numTeams++;
+            }
+
+            let newTeams = [];
+            for(let i=0; i<numTeams; i++) {
+                let colorId = VEST_COLORS[i % VEST_COLORS.length].id;
+                newTeams.push({ 
+                    name: `Tim ${i+1}`, 
+                    vestColorId: colorId,
+                    players: [],
+                    gkPlayer: null
+                });
+            }
+
+            let tIdx = 0;
+            while(gkHadir.length > 0) {
+                newTeams[tIdx % numTeams].gkPlayer = { player: gkHadir.shift(), vestNum: "" };
+                tIdx++;
+            }
+
+            let teamSlots = newTeams.map(() => []);
+
+            tIdx = 0;
+            while(anchors.length > 0) {
+                teamSlots[tIdx % numTeams].push(anchors.shift());
+                tIdx++;
+            }
+
+            tIdx = 0;
+            while(pivots.length > 0) {
+                teamSlots[tIdx % numTeams].push(pivots.shift());
+                tIdx++;
+            }
+
+            tIdx = 0;
+            while(flanks.length > 0) {
+                teamSlots[tIdx % numTeams].push(flanks.shift());
+                tIdx++;
+            }
+
+            for(let i=0; i<numTeams; i++) {
+                newTeams[i].players = teamSlots[i].map(p => ({ player: p, vestNum: "" }));
+            }
+
+            teams = newTeams;
+            saveData();
+            renderTeams();
+        }
+
+        function shuffleArray(arr) {
+            return [...arr].sort(() => Math.random() - 0.5);
+        }
+
+        function renderUnassignedPlayers() {
+            const container = document.getElementById('unassigned-players-container');
+            const searchQuery = (document.getElementById('unassigned-search')?.value || '').toLowerCase();
+            const posFilter = document.getElementById('unassigned-pos-filter')?.value || 'ALL';
+
+            if(!container) return;
+
+            let assignedIds = new Set();
+            teams.forEach(t => {
+                t.players.forEach(p => { if(p && p.player) assignedIds.add(p.player.id); });
+                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
+            });
+
+            const unassigned = participants.filter(p => {
+                if(!p.present || assignedIds.has(p.id)) return false;
+                
+                const matchQuery = p.name.toLowerCase().includes(searchQuery) || p.school.toLowerCase().includes(searchQuery);
+                let matchPos = true;
+                if(posFilter === 'FIELD') matchPos = p.position !== 'GK';
+                else if(posFilter === 'GK') matchPos = p.position === 'GK';
+
+                return matchQuery && matchPos;
+            });
+
+            updateBadges();
+
+            if(unassigned.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 py-6 text-center">Tidak ada sisa pemain.</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            unassigned.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "flex items-center justify-between bg-slate-950 border border-slate-800/80 px-3.5 py-2.5 rounded-xl text-xs hover:border-emerald-500/50 transition cursor-pointer group";
+                card.onclick = () => openQuickAssignModal(p.id);
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5 truncate">
+                        <span class="font-bold text-slate-200 group-hover:text-emerald-400 transition truncate">${p.name}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 shrink-0">${p.position}</span>
+                        ${getStatusIcon(p)}
+                    </div>
+                    <span class="text-[11px] font-bold text-emerald-400 shrink-0 bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-900/50">Masukkan</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openQuickAssignModal(pId) {
+            if(teams.length === 0) {
+                alert("Belum ada tim. Buat tim terlebih dahulu.");
+                return;
+            }
+            activeQuickAssignId = pId;
+            const p = participants.find(x => x.id === pId);
+            if(!p) return;
+
+            document.getElementById('quick-assign-name').innerText = p.name;
+            document.getElementById('quick-assign-pos').innerText = `Posisi: ${p.position}`;
+
+            const listContainer = document.getElementById('quick-assign-teams-list');
+            listContainer.innerHTML = '';
+
+            teams.forEach((t, tIdx) => {
+                let vObj = VEST_COLORS.find(v => v.id === t.vestColorId) || VEST_COLORS[0];
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 hover:bg-emerald-950/40 hover:border-emerald-500/50 text-xs font-semibold text-slate-200 transition flex justify-between items-center";
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full ${vObj.colorClass}"></span>
+                        <span>${t.name}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500">Pilih</span>
+                `;
+                btn.onclick = () => assignPlayerDirectly(tIdx);
+                listContainer.appendChild(btn);
+            });
+
+            document.getElementById('modal-quick-assign').classList.remove('hidden');
+        }
+
+        function closeQuickAssignModal() {
+            document.getElementById('modal-quick-assign').classList.add('hidden');
+            activeQuickAssignId = null;
+        }
+
+        function assignPlayerDirectly(tIdx) {
+            if(activeQuickAssignId === null) return;
+            const p = participants.find(x => x.id === activeQuickAssignId);
+
+            if(p && teams[tIdx]) {
+                let existingCount = isPlayerInAnyTeam(p.id);
+                if (existingCount > 0) {
+                    if(!confirm(`Pemain ${p.name} sudah terdaftar di tim lain (Main 1x). Apakah yakin ingin menambahkannya lagi (Main 2x)?`)) {
+                        return;
+                    }
+                }
+
+                if(p.position === 'GK') {
+                    teams[tIdx].gkPlayer = { player: p, vestNum: "" };
+                } else {
+                    let emptySlotIdx = teams[tIdx].players.findIndex(slot => slot === null);
+                    if(emptySlotIdx !== -1) {
+                        teams[tIdx].players[emptySlotIdx] = { player: p, vestNum: "" };
+                    } else {
+                        teams[tIdx].players.push({ player: p, vestNum: "" });
+                    }
+                }
+                saveData();
+                closeQuickAssignModal();
+                renderUnassignedPlayers();
+                renderTeams();
+            }
+        }
+
+        function renderTeams() {
+            const gridContainer = document.getElementById('teams-grid-container');
+            const oddWarning = document.getElementById('odd-warning');
+            if(!gridContainer) return;
+
+            updateBadges();
+
+            if(teams.length % 2 !== 0 && teams.length > 0) {
+                oddWarning.classList.remove('hidden');
+            } else {
+                oddWarning.classList.add('hidden');
+            }
+
+            gridContainer.innerHTML = '';
+
+            if(teams.length === 0) {
+                gridContainer.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-500 text-sm">Belum ada tim terbentuk. Klik "Acak Tim Seimbang" di atas.</div>`;
+                return;
+            }
+
+            teams.forEach((team, tIdx) => {
+                let vObj = VEST_COLORS.find(v => v.id === team.vestColorId) || VEST_COLORS[0];
+                const card = document.createElement('div');
+                card.className = `${vObj.cardBg} border-2 ${vObj.border} rounded-2xl overflow-hidden shadow-2xl flex flex-col justify-between transition-all`;
+
+                let gkHTML = '';
+                if(team.gkPlayer && team.gkPlayer.player) {
+                    let pGk = team.gkPlayer.player;
+                    let vNum = team.gkPlayer.vestNum || "";
+                    let playCount = isPlayerInAnyTeam(pGk.id);
+                    let play2xBadge = playCount > 1 ? `<span class="px-1.5 py-0.5 bg-purple-500 text-white font-extrabold text-[10px] rounded-md shadow" title="Pemain bermain lebih dari 1x">Main ${playCount}x</span>` : '';
+                    
+                    gkHTML = `
+                        <div class="bg-emerald-950/40 border border-emerald-900/80 p-2.5 rounded-xl text-sm shadow-sm flex items-center justify-between">
+                            <div class="flex items-center gap-2 truncate">
+                                <input type="text" value="${vNum}" placeholder="No" onchange="updateVestNum(${tIdx}, null, true, this.value)" title="Nomor Punggung" class="w-9 py-1 text-center font-bold bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 text-xs focus:outline-none focus:border-emerald-500 placeholder-slate-600">
+                                <span class="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-900">GK</span>
+                                <span class="text-slate-100 font-bold hover:underline cursor-pointer truncate" onclick="openProfileModal(${pGk.id})">${pGk.name}</span>
+                                ${play2xBadge}
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <div class="flex items-center gap-1 bg-slate-900 border border-slate-800 px-1.5 py-1 rounded-lg">
+                                    <button onclick="toggleStarOnly(${pGk.id})" class="p-1 rounded hover:bg-slate-800 transition" title="Tandai (Pelatih)">
+                                        <svg class="w-4 h-4 ${pGk.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                    </button>
+                                    <button onclick="togglePassOnly(${pGk.id})" class="p-1 rounded hover:bg-slate-800 transition" title="Lolos Seleksi (Pelatih)">
+                                        <svg class="w-4 h-4 ${pGk.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    </button>
+                                </div>
+                                <button onclick="openPlayerSelector(${tIdx}, null, true)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Ganti Kiper">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                </button>
+                                <button onclick="removeGkFromTeam(${tIdx})" class="p-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 rounded-lg transition" title="Hapus dari Tim">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    gkHTML = `
+                        <div class="flex items-center justify-between bg-emerald-950/10 border border-dashed border-emerald-900/40 p-2.5 rounded-xl text-sm text-emerald-400/60">
+                            <span class="flex items-center gap-2"><span class="px-1.5 py-0.5 text-[10px] font-bold border border-emerald-900/50 rounded">GK</span> Slot Kiper Kosong</span>
+                            <button onclick="openPlayerSelector(${tIdx}, null, true)" class="px-3 py-1.5 bg-emerald-950 border border-emerald-800 hover:bg-emerald-900 text-emerald-300 rounded-lg text-xs font-bold">+ Isi GK</button>
+                        </div>
+                    `;
+                }
+
+                let playersHTML = '';
+                const slotCount = Math.max(4, team.players.length);
+                for(let pIdx = 0; pIdx < slotCount; pIdx++) {
+                    let slot = team.players[pIdx];
+                    if(slot && slot.player) {
+                        let player = slot.player;
+                        let vNum = slot.vestNum || "";
+                        let playCount = isPlayerInAnyTeam(player.id);
+                        let play2xBadge = playCount > 1 ? `<span class="px-1.5 py-0.5 bg-purple-500 text-white font-extrabold text-[10px] rounded-md shadow shrink-0" title="Pemain bermain lebih dari 1x">Main ${playCount}x</span>` : '';
+
+                        playersHTML += `
+                            <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl text-sm shadow-sm">
+                                <div class="flex items-center gap-2 truncate">
+                                    <input type="text" value="${vNum}" placeholder="No" onchange="updateVestNum(${tIdx}, ${pIdx}, false, this.value)" title="Nomor Punggung" class="w-9 py-1 text-center font-bold bg-slate-950 border border-slate-800 rounded-lg text-amber-400 text-xs focus:outline-none focus:border-emerald-500 placeholder-slate-600">
+                                    <span class="px-2 py-0.5 rounded-md text-xs font-bold ${
+                                        player.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
+                                        player.position === 'Flank' ? 'bg-amber-950/60 text-amber-400 border border-amber-900/50' : 'bg-purple-950/60 text-purple-400 border border-purple-900/50'
+                                    }">${player.position}</span>
+                                    <span class="text-slate-100 font-semibold hover:underline cursor-pointer truncate" onclick="openProfileModal(${player.id})">${player.name}</span>
+                                    ${play2xBadge}
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <div class="flex items-center gap-1 bg-slate-950 border border-slate-800 px-1.5 py-1 rounded-lg">
+                                        <button onclick="toggleStarOnly(${player.id})" class="p-1 rounded hover:bg-slate-900 transition" title="Tandai (Pelatih)">
+                                            <svg class="w-4 h-4 ${player.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                        </button>
+                                        <button onclick="togglePassOnly(${player.id})" class="p-1 rounded hover:bg-slate-900 transition" title="Lolos Seleksi (Pelatih)">
+                                            <svg class="w-4 h-4 ${player.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        </button>
+                                    </div>
+                                    <button onclick="openPlayerSelector(${tIdx}, ${pIdx}, false)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Ganti Pemain">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                    </button>
+                                    <button onclick="removePlayerFromTeam(${tIdx}, ${pIdx})" class="p-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 rounded-lg transition" title="Hapus dari Tim">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        playersHTML += `
+                            <div class="flex items-center justify-between bg-slate-900/30 border border-dashed border-slate-800 p-2.5 rounded-xl text-sm text-slate-500">
+                                <span>[ Slot Kosong ]</span>
+                                <button onclick="openPlayerSelector(${tIdx}, ${pIdx}, false)" class="px-3 py-1.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold">Isi Pemain</button>
+                            </div>
+                        `;
+                    }
+                }
+
+                let colorPaletteHTML = VEST_COLORS.map(c => `
+                    <button onclick="updateTeamVestColor(${tIdx}, '${c.id}')" title="Warna Rompi ${c.name}" class="w-5 h-5 rounded-full ${c.colorClass} transition transform hover:scale-125 ${vObj.id === c.id ? 'ring-2 ring-white scale-110 shadow-md' : 'opacity-70 hover:opacity-100'}"></button>
+                `).join('');
+
+                let matchVsBadge = Math.floor(tIdx / 2) + 1;
+                let vsOpponent = tIdx % 2 === 0 ? `Lawan Tim ${tIdx + 2}` : `Lawan Tim ${tIdx}`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="${vObj.headerBg} p-4 border-b ${vObj.border} flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <input type="text" value="${team.name}" onchange="renameTeam(${tIdx}, this.value)" class="bg-transparent font-extrabold text-base text-slate-100 focus:outline-none focus:border-b focus:border-emerald-500 w-28">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase ${vObj.badge}">Rompi ${vObj.name}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] bg-slate-950/80 px-2 py-1 rounded-md text-slate-400 font-mono border border-slate-800">Match #${matchVsBadge}</span>
+                                <button onclick="addSlotToTeam(${tIdx})" class="px-2.5 py-1 bg-slate-900/80 hover:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold shadow">+ Slot</button>
+                                <button onclick="deleteTeam(${tIdx})" class="px-2.5 py-1 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 rounded-lg text-xs font-semibold shadow">Hapus</button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 space-y-4">
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-slate-400">Pilih Warna Rompi:</span>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    ${colorPaletteHTML}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Penjaga Gawang</span>
+                                ${gkHTML}
+                            </div>
+                            <div class="space-y-2">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pemain Lapangan</span>
+                                ${playersHTML}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-2.5 bg-slate-950/60 border-t border-slate-800/50 text-xs text-slate-500 flex justify-between items-center font-medium">
+                        <span class="text-[11px] text-slate-400">${vsOpponent}</span>
+                        <span>Total: ${team.players.filter(Boolean).length + (team.gkPlayer ? 1 : 0)} Pemain</span>
+                    </div>
+                `;
+                gridContainer.appendChild(card);
+            });
+        }
+
+        function updateTeamVestColor(tIdx, colorId) {
+            if(teams[tIdx]) {
+                teams[tIdx].vestColorId = colorId;
+                saveData();
+                renderTeams();
+            }
+        }
+
+        function updateVestNum(tIdx, pIdx, isGk, numValue) {
+            if(teams[tIdx]) {
+                if(isGk && teams[tIdx].gkPlayer) {
+                    teams[tIdx].gkPlayer.vestNum = numValue;
+                } else if(!isGk && teams[tIdx].players[pIdx]) {
+                    teams[tIdx].players[pIdx].vestNum = numValue;
+                }
+                saveData();
+            }
+        }
+
+        function renameTeam(tIdx, newName) {
+            if(teams[tIdx]) {
+                teams[tIdx].name = newName;
+                saveData();
+            }
+        }
+
+        function deleteTeam(tIdx) {
+            if(teams[tIdx]) {
+                if(confirm(`Hapus ${teams[tIdx].name}?`)) {
+                    teams.splice(tIdx, 1);
+                    saveData();
+                    renderTeams();
+                }
+            }
+        }
+
+        function addNewManualTeam() {
+            let colorId = VEST_COLORS[teams.length % VEST_COLORS.length].id;
+            teams.push({ name: `Tim ${teams.length + 1}`, vestColorId: colorId, players: [], gkPlayer: null });
+            saveData();
+            renderTeams();
+        }
+
+        function addSlotToTeam(tIdx) {
+            if(teams[tIdx]) {
+                teams[tIdx].players.push(null);
+                saveData();
+                renderTeams();
+            }
+        }
+
+        function removePlayerFromTeam(tIdx, pIdx) {
+            if(teams[tIdx]) {
+                teams[tIdx].players.splice(pIdx, 1);
+                saveData();
+                renderTeams();
+            }
+        }
+
+        function removeGkFromTeam(tIdx) {
+            if(teams[tIdx]) {
+                teams[tIdx].gkPlayer = null;
+                saveData();
+                renderTeams();
+            }
+        }
+
+        function openPlayerSelector(tIdx, pIdx, isGkSlot = false) {
+            activeModalTarget = { teamIndex: tIdx, playerIndex: pIdx, isGkSlot: isGkSlot };
+            document.getElementById('modal-select-player').classList.remove('hidden');
+            renderModalPlayerList();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-select-player').classList.add('hidden');
+        }
+
+        function renderModalPlayerList() {
+            const container = document.getElementById('modal-player-list');
+            const search = (document.getElementById('modal-search')?.value || '').toLowerCase();
+            container.innerHTML = '';
+
+            const { isGkSlot } = activeModalTarget;
+
+            let assignedIds = new Set();
+            teams.forEach(t => {
+                t.players.forEach(p => { if(p && p.player) assignedIds.add(p.player.id); });
+                if(t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
+            });
+
+            let available = participants.filter(p => {
+                const matchPos = isGkSlot ? p.position === 'GK' : p.position !== 'GK';
+                const matchQuery = p.name.toLowerCase().includes(search) || p.school.toLowerCase().includes(search);
+                return p.present && matchPos && matchQuery;
+            });
+
+            available.sort((a, b) => {
+                const isAUnassigned = !assignedIds.has(a.id);
+                const isBUnassigned = !assignedIds.has(b.id);
+                const scoreA = a.passed ? 2 : (a.starred ? 1 : 0);
+                const scoreB = b.passed ? 2 : (b.starred ? 1 : 0);
+
+                if (isAUnassigned !== isBUnassigned) {
+                    return isAUnassigned ? -1 : 1;
+                }
+                return scoreB - scoreA;
+            });
+
+            if(available.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-500 text-center py-4">Tidak ada peserta ${isGkSlot ? 'GK' : 'lapangan'} hadir yang cocok.</p>`;
+                return;
+            }
+
+            available.forEach(p => {
+                let playCount = isPlayerInAnyTeam(p.id);
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center border p-3 rounded-xl transition ${
+                    p.passed ? 'bg-emerald-950/20 border-emerald-500/50 hover:bg-emerald-950/30' :
+                    p.starred ? 'bg-amber-950/20 border-amber-500/50 hover:bg-amber-950/30' :
+                    'bg-slate-950 border-slate-800 hover:bg-slate-800/50'
+                }`;
+                div.innerHTML = `
+                    <div class="text-sm flex items-center gap-2">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-slate-100">${p.name}</span> 
+                                <span class="text-slate-400">(${p.position})</span>
+                                ${getStatusIcon(p)}
+                            </div>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-slate-400">${p.school}</span>
+                                ${playCount === 0 ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Sisa Pemain</span>' : `<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Sudah Main ${playCount}x</span>`}
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="assignPlayerToSlot(${p.id})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold">Pilih</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function assignPlayerToSlot(pId) {
+            const player = participants.find(x => x.id === pId);
+            const { teamIndex, playerIndex, isGkSlot } = activeModalTarget;
+
+            if(player && teamIndex !== null) {
+                let existingCount = isPlayerInAnyTeam(player.id);
+                if (existingCount > 0) {
+                    if(!confirm(`Pemain ${player.name} sudah terdaftar di tim lain (Main 1x). Apakah Anda yakin ingin memasukkannya lagi ke tim ini (Main 2x)?`)) {
+                        return;
+                    }
+                }
+
+                if(isGkSlot) {
+                    teams[teamIndex].gkPlayer = { player: player, vestNum: "" };
+                } else {
+                    if(playerIndex !== null && playerIndex < teams[teamIndex].players.length) {
+                        teams[teamIndex].players[playerIndex] = { player: player, vestNum: "" };
+                    } else {
+                        teams[teamIndex].players.push({ player: player, vestNum: "" });
+                    }
+                }
+                saveData();
+                closeModal();
+                renderTeams();
+            }
+        }
+
+        function openProfileModal(id) {
+            const p = participants.find(x => x.id === id);
+            if(!p) return;
+
+            activeProfilePlayerId = id;
+            document.getElementById('profile-name').innerText = p.name;
+            document.getElementById('profile-school-ttl').innerText = `${p.school} • ${p.ttl}`;
+            document.getElementById('profile-position').innerText = p.position;
+            document.getElementById('profile-phone').innerText = p.phone;
+            document.getElementById('profile-club-input').value = p.club || '';
+            document.getElementById('profile-notes-input').value = p.notes || '';
+
+            selectedProfileFoot = p.foot || 'Right';
+            setProfileFoot(selectedProfileFoot);
+
+            if(p.passed) selectedProfileStatus = 'PASSED';
+            else if(p.starred) selectedProfileStatus = 'STARRED';
+            else selectedProfileStatus = 'NONE';
+
+            updateProfileStatusButtons();
+            document.getElementById('modal-player-profile').classList.remove('hidden');
+        }
+
+        function setProfileFoot(foot) {
+            selectedProfileFoot = foot;
+            ['Right', 'Left'].forEach(f => {
+                const btn = document.getElementById(`foot-btn-${f}`);
+                if(btn) {
+                    if(f === foot) {
+                        btn.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition border border-emerald-500 bg-emerald-600 text-slate-950 shadow-md shadow-emerald-600/20";
+                    } else {
+                        btn.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition border border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800";
+                    }
+                }
+            });
+        }
+
+        function setProfileStatus(status) {
+            selectedProfileStatus = status;
+            updateProfileStatusButtons();
+        }
+
+        function updateProfileStatusButtons() {
+            const btnNone = document.getElementById('btn-status-none');
+            const btnStarred = document.getElementById('btn-status-starred');
+            const btnPassed = document.getElementById('btn-status-passed');
+
+            btnNone.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800";
+            btnStarred.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800";
+            btnPassed.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800";
+
+            if(selectedProfileStatus === 'NONE') {
+                btnNone.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-500 bg-slate-700 text-slate-100 shadow-md";
+            } else if(selectedProfileStatus === 'STARRED') {
+                btnStarred.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-amber-400 bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20";
+            } else if(selectedProfileStatus === 'PASSED') {
+                btnPassed.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-emerald-400 bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20";
+            }
+        }
+
+        function closeProfileModal() {
+            document.getElementById('modal-player-profile').classList.add('hidden');
+            activeProfilePlayerId = null;
+        }
+
+        function saveProfileChanges() {
+            if(!activeProfilePlayerId) return;
+
+            const p = participants.find(x => x.id === activeProfilePlayerId);
+            if(p) {
+                p.foot = selectedProfileFoot;
+                p.club = document.getElementById('profile-club-input').value;
+                p.notes = document.getElementById('profile-notes-input').value;
+
+                if(selectedProfileStatus === 'PASSED') {
+                    p.passed = true;
+                    p.starred = false;
+                } else if(selectedProfileStatus === 'STARRED') {
+                    p.starred = true;
+                    p.passed = false;
+                } else {
+                    p.starred = false;
+                    p.passed = false;
+                }
+
+                saveData();
+                closeProfileModal();
+                refreshAllViews();
+            }
+        }
+
+        function renderStarredList() {
+            const passed = participants.filter(p => p.passed);
+            const starred = participants.filter(p => p.starred && !p.passed);
+
+            const containerPassed = document.getElementById('passed-list-container');
+            const containerStarred = document.getElementById('starred-list-container');
+            
+            document.getElementById('count-passed').innerText = passed.length;
+            document.getElementById('count-starred').innerText = starred.length;
+
+            if(containerPassed) {
+                if(passed.length === 0) {
+                    containerPassed.innerHTML = `<div class="p-5 text-center text-slate-500 text-sm">Belum ada pemain dengan status Lolos.</div>`;
+                } else {
+                    containerPassed.innerHTML = '';
+                    passed.forEach((p, idx) => {
+                        containerPassed.appendChild(createCandidateCard(p, idx + 1));
+                    });
+                }
+            }
+
+            if(containerStarred) {
+                if(starred.length === 0) {
+                    containerStarred.innerHTML = `<div class="p-5 text-center text-slate-500 text-sm">Belum ada pemain dengan status Ditandai.</div>`;
+                } else {
+                    containerStarred.innerHTML = '';
+                    starred.forEach((p, idx) => {
+                        containerStarred.appendChild(createCandidateCard(p, idx + 1));
+                    });
+                }
+            }
+        }
+
+        function createCandidateCard(p, num) {
+            const div = document.createElement('div');
+            div.className = "p-4 flex justify-between items-center hover:bg-slate-800/40 transition text-sm";
+            div.innerHTML = `
+                <div class="flex items-center gap-3.5">
+                    <span class="text-slate-500 font-mono text-xs w-5">${num}.</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-100 text-base hover:underline cursor-pointer" onclick="openProfileModal(${p.id})">${p.name}</span>
+                            ${getStatusIcon(p)}
+                        </div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold ${
+                                p.position === 'GK' ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-900/50' :
+                                p.position === 'Anchor' ? 'bg-sky-950/80 text-sky-400 border border-sky-900/50' :
+                                p.position === 'Flank' ? 'bg-amber-950/80 text-amber-400 border border-amber-900/50' :
+                                'bg-purple-950/80 text-purple-400 border border-purple-900/50'
+                            }">${p.position}</span>
+                            <span class="text-xs text-slate-400">${p.school}</span>
+                            <span class="text-xs text-slate-500">• HP: ${p.phone}</span>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300">Foot: ${p.foot || 'Right'}</span>
+                            ${p.club ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-400">Klub: ${p.club}</span>` : ''}
+                        </div>
+                        ${p.notes ? `<p class="text-xs text-slate-400 italic mt-1.5 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800/80 inline-block">Catatan Pelatih: "${p.notes}"</p>` : ''}
+                    </div>
+                </div>
+                <button onclick="removeCandidateStatus(${p.id})" class="p-2.5 bg-rose-950/30 hover:bg-rose-900/50 text-rose-400 border border-rose-900/40 rounded-xl transition shrink-0" title="Keluarkan dari Kandidat">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            `;
+            return div;
+        }
+
+        function exportStarredExcel() {
+            let candidates = participants.filter(p => p.starred || p.passed);
+            candidates.sort((a, b) => (b.passed ? 1 : 0) - (a.passed ? 1 : 0));
+
+            const dataToExport = candidates.map((p, index) => ({
+                No: index + 1,
+                Nama: p.name,
+                TTL: p.ttl,
+                "Asal Sekolah": p.school,
+                "No. HP": p.phone,
+                Posisi: p.position,
+                "Strongest Foot": p.foot || "Right",
+                Klub: p.club || "-",
+                "Catatan Pelatih": p.notes || "-",
+                Status: p.passed ? "Lolos Seleksi" : "Ditandai Pelatih"
+            }));
+
+            if(dataToExport.length === 0) {
+                alert("Tidak ada data pemain kandidat.");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Seleksi");
+            XLSX.writeFile(workbook, "Hasil_Seleksi_Futsal_Ponprov.xlsx");
+        }
+
+        function exportStarred() {
+            let candidates = participants.filter(p => p.starred || p.passed);
+            if(candidates.length === 0) {
+                alert("Tidak ada data pemain.");
+                return;
+            }
+            let text = "DAFTAR HASIL SELEKSI FUTSAL PONPROV KAB. KEDIRI\n\n";
+            candidates.forEach((p, i) => {
+                text += `${i+1}. ${p.name} | Status: ${p.passed ? 'Lolos Seleksi' : 'Ditandai'} | Posisi: ${p.position} | Foot: ${p.foot || 'Right'} | Klub: ${p.club || '-'} | HP: ${p.phone}\n   Catatan Pelatih: ${p.notes || '-'}\n\n`;
+            });
+
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Hasil_Seleksi_Futsal.txt';
+            a.click();
+        }
+
+        function refreshAllViews() {
+            renderPresensiTable();
+            renderRekap();
+            renderTeams();
+            renderStarredList();
+            updateBadges();
+        }
     </script>
-  </body>
+</body>
 </html>
