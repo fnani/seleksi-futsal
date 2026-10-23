@@ -163,7 +163,7 @@
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-100">Manajemen Pembagian Tim Match</h2>
+                        <h2 class="text-lg font-bold text-slate-100">Manajemen Pembagian Tim Match (Maks 4 Pemain Lapangan / Tim)</h2>
                         <p class="text-sm text-slate-400 mt-1">Admin: Atur rompi & nomor punggung | Pelatih: Tandai / evaluasi pemain.</p>
                     </div>
 
@@ -178,7 +178,7 @@
 
                         <button onclick="generateTeams()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-900/40 flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            <span>Acak Tim Seimbang (Hadir)</span>
+                            <span>Acak Tim Otomatis (Maks 4v4)</span>
                         </button>
                     </div>
                 </div>
@@ -396,7 +396,6 @@
             { id: "white", name: "Putih", colorClass: "bg-slate-100", cardBg: "bg-slate-900/60", border: "border-slate-400/80", headerBg: "bg-slate-200/20", text: "text-slate-100", badge: "bg-slate-100 text-slate-950" }
         ];
 
-        // Inisialisasi Real-time Listener menggunakan onSnapshot
         window.initFirebaseRealtime = function() {
             if (window.db) {
                 const docRef = window.doc(window.db, "futsal_data", "participants");
@@ -706,61 +705,47 @@
             XLSX.writeFile(workbook, "Rekap_Peserta_Hadir_Futsal.xlsx");
         }
 
+        // --- ALGORITMA BARU: MAKSIMAL KETAT 4 PEMAIN LAPANGAN + 1 GK PER TIM ---
         function generateTeams() {
             const presentPlayers = participants.filter(p => p.present);
 
             const gkHadir = shuffleArray(presentPlayers.filter(p => p.position === 'GK'));
-            const anchors = shuffleArray(presentPlayers.filter(p => p.position === 'Anchor'));
-            const flanks = shuffleArray(presentPlayers.filter(p => p.position === 'Flank'));
-            const pivots = shuffleArray(presentPlayers.filter(p => p.position === 'Pivot'));
+            const fieldPlayers = shuffleArray(presentPlayers.filter(p => p.position !== 'GK'));
 
-            const totalField = anchors.length + flanks.length + pivots.length;
+            // Tentukan jumlah tim, setiap tim maksimal 4 pemain lapangan
+            let totalField = fieldPlayers.length;
             let numTeams = Math.ceil(totalField / 4);
-            if(numTeams < 1) numTeams = 1;
-
-            if (numTeams % 2 !== 0 && numTeams > 1) {
-                numTeams++;
-            }
+            if(numTeams < 2) numTeams = 2;
+            if(numTeams % 2 !== 0) numTeams++; // Pastikan genap agar berpasangan
 
             let newTeams = [];
-            for(let i=0; i<numTeams; i++) {
+            for(let i = 0; i < numTeams; i++) {
                 let colorId = VEST_COLORS[i % VEST_COLORS.length].id;
                 newTeams.push({ 
                     name: `Tim ${i+1}`, 
                     vestColorId: colorId,
-                    players: [],
+                    players: [null, null, null, null], // Di-lock tepat 4 slot kosong
                     gkPlayer: null
                 });
             }
 
+            // Masukkan Kiper
             let tIdx = 0;
-            while(gkHadir.length > 0) {
-                newTeams[tIdx % numTeams].gkPlayer = { player: gkHadir.shift(), vestNum: "" };
+            while(gkHadir.length > 0 && tIdx < newTeams.length) {
+                newTeams[tIdx].gkPlayer = { player: gkHadir.shift(), vestNum: "" };
                 tIdx++;
             }
 
-            let teamSlots = newTeams.map(() => []);
-
-            tIdx = 0;
-            while(anchors.length > 0) {
-                teamSlots[tIdx % numTeams].push(anchors.shift());
-                tIdx++;
-            }
-
-            tIdx = 0;
-            while(pivots.length > 0) {
-                teamSlots[tIdx % numTeams].push(pivots.shift());
-                tIdx++;
-            }
-
-            tIdx = 0;
-            while(flanks.length > 0) {
-                teamSlots[tIdx % numTeams].push(flanks.shift());
-                tIdx++;
-            }
-
-            for(let i=0; i<numTeams; i++) {
-                newTeams[i].players = teamSlots[i].map(p => ({ player: p, vestNum: "" }));
+            // Masukkan Pemain Lapangan (Maksimal tepat 4 orang per tim)
+            let teamSlotIdx = 0;
+            let playerSlotPos = 0;
+            while(fieldPlayers.length > 0 && playerSlotPos < 4) {
+                newTeams[teamSlotIdx].players[playerSlotPos] = { player: fieldPlayers.shift(), vestNum: "" };
+                teamSlotIdx++;
+                if(teamSlotIdx >= newTeams.length) {
+                    teamSlotIdx = 0;
+                    playerSlotPos++;
+                }
             }
 
             teams = newTeams;
@@ -872,13 +857,14 @@
                 }
 
                 if(p.position === 'GK') {
-                    teams[tIdx].gkPlayer = { player: p, vestNum: "" };
+                    teams[tIdx].gkPlayer = { player: { id: p.id }, vestNum: "" };
                 } else {
-                    let emptySlotIdx = teams[tIdx].players.findIndex(slot => slot === null);
+                    let emptySlotIdx = teams[tIdx].players.findIndex(slot => slot === null || slot.player === null);
                     if(emptySlotIdx !== -1) {
-                        teams[tIdx].players[emptySlotIdx] = { player: p, vestNum: "" };
+                        teams[tIdx].players[emptySlotIdx] = { player: { id: p.id }, vestNum: "" };
                     } else {
-                        teams[tIdx].players.push({ player: p, vestNum: "" });
+                        alert("Semua slot pemain lapangan di tim ini sudah penuh (maksimal 4 orang)!");
+                        return;
                     }
                 }
                 saveData();
@@ -904,7 +890,7 @@
             gridContainer.innerHTML = '';
 
             if(teams.length === 0) {
-                gridContainer.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-500 text-sm">Belum ada tim terbentuk. Klik "Acak Tim Seimbang" di atas.</div>`;
+                gridContainer.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-500 text-sm">Belum ada tim terbentuk. Klik "Acak Tim Otomatis" di atas.</div>`;
                 return;
             }
 
@@ -915,9 +901,10 @@
 
                 let gkHTML = '';
                 if(team.gkPlayer && team.gkPlayer.player) {
-                    let pGk = team.gkPlayer.player;
+                    let pId = team.gkPlayer.player.id;
+                    let realGk = participants.find(x => String(x.id) === String(pId)) || team.gkPlayer.player;
                     let vNum = team.gkPlayer.vestNum || "";
-                    let playCount = isPlayerInAnyTeam(pGk.id);
+                    let playCount = isPlayerInAnyTeam(realGk.id);
                     let play2xBadge = playCount > 1 ? `<span class="px-1.5 py-0.5 bg-purple-500 text-white font-extrabold text-[10px] rounded-md shadow" title="Pemain bermain lebih dari 1x">Main ${playCount}x</span>` : '';
                     
                     gkHTML = `
@@ -925,16 +912,16 @@
                             <div class="flex items-center gap-2 truncate">
                                 <input type="text" value="${vNum}" placeholder="No" onchange="updateVestNum(${tIdx}, null, true, this.value)" title="Nomor Punggung" class="w-9 py-1 text-center font-bold bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 text-xs focus:outline-none focus:border-emerald-500 placeholder-slate-600">
                                 <span class="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-900">GK</span>
-                                <span class="text-slate-100 font-bold hover:underline cursor-pointer truncate" onclick="openProfileModal('${pGk.id}')">${pGk.name}</span>
+                                <span class="text-slate-100 font-bold hover:underline cursor-pointer truncate" onclick="openProfileModal('${realGk.id}')">${realGk.name || 'Unknown'}</span>
                                 ${play2xBadge}
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <div class="flex items-center gap-1 bg-slate-900 border border-slate-800 px-1.5 py-1 rounded-lg">
-                                    <button onclick="toggleStarOnly('${pGk.id}')" class="p-1 rounded hover:bg-slate-800 transition" title="Tandai (Pelatih)">
-                                        <svg class="w-4 h-4 ${pGk.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                    <button onclick="toggleStarOnly('${realGk.id}')" class="p-1 rounded hover:bg-slate-800 transition" title="Tandai (Pelatih)">
+                                        <svg class="w-4 h-4 ${realGk.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                                     </button>
-                                    <button onclick="togglePassOnly('${pGk.id}')" class="p-1 rounded hover:bg-slate-800 transition" title="Lolos Seleksi (Pelatih)">
-                                        <svg class="w-4 h-4 ${pGk.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <button onclick="togglePassOnly('${realGk.id}')" class="p-1 rounded hover:bg-slate-800 transition" title="Lolos Seleksi (Pelatih)">
+                                        <svg class="w-4 h-4 ${realGk.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                     </button>
                                 </div>
                                 <button onclick="openPlayerSelector(${tIdx}, null, true)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Ganti Kiper">
@@ -956,13 +943,13 @@
                 }
 
                 let playersHTML = '';
-                const slotCount = Math.max(4, team.players.length);
-                for(let pIdx = 0; pIdx < slotCount; pIdx++) {
+                for(let pIdx = 0; pIdx < 4; pIdx++) {
                     let slot = team.players[pIdx];
                     if(slot && slot.player) {
-                        let player = slot.player;
+                        let pId = slot.player.id;
+                        let realPlayer = participants.find(x => String(x.id) === String(pId)) || slot.player;
                         let vNum = slot.vestNum || "";
-                        let playCount = isPlayerInAnyTeam(player.id);
+                        let playCount = isPlayerInAnyTeam(realPlayer.id);
                         let play2xBadge = playCount > 1 ? `<span class="px-1.5 py-0.5 bg-purple-500 text-white font-extrabold text-[10px] rounded-md shadow shrink-0" title="Pemain bermain lebih dari 1x">Main ${playCount}x</span>` : '';
 
                         playersHTML += `
@@ -970,25 +957,25 @@
                                 <div class="flex items-center gap-2 truncate">
                                     <input type="text" value="${vNum}" placeholder="No" onchange="updateVestNum(${tIdx}, ${pIdx}, false, this.value)" title="Nomor Punggung" class="w-9 py-1 text-center font-bold bg-slate-950 border border-slate-800 rounded-lg text-amber-400 text-xs focus:outline-none focus:border-emerald-500 placeholder-slate-600">
                                     <span class="px-2 py-0.5 rounded-md text-xs font-bold ${
-                                        player.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
-                                        player.position === 'Flank' ? 'bg-amber-950/60 text-amber-400 border border-amber-900/50' : 'bg-purple-950/60 text-purple-400 border border-purple-900/50'
-                                    }">${player.position}</span>
-                                    <span class="text-slate-100 font-semibold hover:underline cursor-pointer truncate" onclick="openProfileModal('${player.id}')">${player.name}</span>
+                                        realPlayer.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
+                                        realPlayer.position === 'Flank' ? 'bg-amber-950/60 text-amber-400 border border-amber-900/50' : 'bg-purple-950/60 text-purple-400 border border-purple-900/50'
+                                    }">${realPlayer.position || 'Field'}</span>
+                                    <span class="text-slate-100 font-semibold hover:underline cursor-pointer truncate" onclick="openProfileModal('${realPlayer.id}')">${realPlayer.name || 'Unknown'}</span>
                                     ${play2xBadge}
                                 </div>
                                 <div class="flex items-center gap-1.5 shrink-0">
                                     <div class="flex items-center gap-1 bg-slate-950 border border-slate-800 px-1.5 py-1 rounded-lg">
-                                        <button onclick="toggleStarOnly('${player.id}')" class="p-1 rounded hover:bg-slate-900 transition" title="Tandai (Pelatih)">
-                                            <svg class="w-4 h-4 ${player.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                        <button onclick="toggleStarOnly('${realPlayer.id}')" class="p-1 rounded hover:bg-slate-900 transition" title="Tandai (Pelatih)">
+                                            <svg class="w-4 h-4 ${realPlayer.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                                         </button>
-                                        <button onclick="togglePassOnly('${player.id}')" class="p-1 rounded hover:bg-slate-900 transition" title="Lolos Seleksi (Pelatih)">
-                                            <svg class="w-4 h-4 ${player.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        <button onclick="togglePassOnly('${realPlayer.id}')" class="p-1 rounded hover:bg-slate-900 transition" title="Lolos Seleksi (Pelatih)">
+                                            <svg class="w-4 h-4 ${realPlayer.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         </button>
                                     </div>
                                     <button onclick="openPlayerSelector(${tIdx}, ${pIdx}, false)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Ganti Pemain">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                     </button>
-                                    <button onclick="removePlayerFromTeam(${tIdx}, ${pIdx})" class="p-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 rounded-lg transition" title="Hapus dari Tim">
+                                    <button onclick="removePlayerFromTeam(${tIdx}, ${pIdx})" class="p-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 rounded-lg transition" title="Kosongkan Slot">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     </button>
                                 </div>
@@ -1020,7 +1007,6 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] bg-slate-950/80 px-2 py-1 rounded-md text-slate-400 font-mono border border-slate-800">Match #${matchVsBadge}</span>
-                                <button onclick="addSlotToTeam(${tIdx})" class="px-2.5 py-1 bg-slate-900/80 hover:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold shadow">+ Slot</button>
                                 <button onclick="deleteTeam(${tIdx})" class="px-2.5 py-1 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 rounded-lg text-xs font-semibold shadow">Hapus</button>
                             </div>
                         </div>
@@ -1038,14 +1024,14 @@
                                 ${gkHTML}
                             </div>
                             <div class="space-y-2">
-                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pemain Lapangan</span>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pemain Lapangan (Maks 4)</span>
                                 ${playersHTML}
                             </div>
                         </div>
                     </div>
                     <div class="px-4 py-2.5 bg-slate-950/60 border-t border-slate-800/50 text-xs text-slate-500 flex justify-between items-center font-medium">
                         <span class="text-[11px] text-slate-400">${vsOpponent}</span>
-                        <span>Total: ${team.players.filter(Boolean).length + (team.gkPlayer ? 1 : 0)} Pemain</span>
+                        <span>Total: ${team.players.filter(s => s && s.player).length + (team.gkPlayer && team.gkPlayer.player ? 1 : 0)} Pemain</span>
                     </div>
                 `;
                 gridContainer.appendChild(card);
@@ -1090,22 +1076,14 @@
 
         function addNewManualTeam() {
             let colorId = VEST_COLORS[teams.length % VEST_COLORS.length].id;
-            teams.push({ name: `Tim ${teams.length + 1}`, vestColorId: colorId, players: [], gkPlayer: null });
+            teams.push({ name: `Tim ${teams.length + 1}`, vestColorId: colorId, players: [null, null, null, null], gkPlayer: null });
             saveData();
             renderTeams();
         }
 
-        function addSlotToTeam(tIdx) {
-            if(teams[tIdx]) {
-                teams[tIdx].players.push(null);
-                saveData();
-                renderTeams();
-            }
-        }
-
         function removePlayerFromTeam(tIdx, pIdx) {
             if(teams[tIdx]) {
-                teams[tIdx].players.splice(pIdx, 1);
+                teams[tIdx].players[pIdx] = null;
                 saveData();
                 renderTeams();
             }
@@ -1206,12 +1184,12 @@
                 }
 
                 if(isGkSlot) {
-                    teams[teamIndex].gkPlayer = { player: player, vestNum: "" };
+                    teams[teamIndex].gkPlayer = { player: { id: player.id }, vestNum: "" };
                 } else {
                     if(playerIndex !== null && playerIndex < teams[teamIndex].players.length) {
-                        teams[teamIndex].players[playerIndex] = { player: player, vestNum: "" };
+                        teams[teamIndex].players[playerIndex] = { player: { id: player.id }, vestNum: "" };
                     } else {
-                        teams[teamIndex].players.push({ player: player, vestNum: "" });
+                        teams[teamIndex].players.push({ player: { id: player.id }, vestNum: "" });
                     }
                 }
                 saveData();
