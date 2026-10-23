@@ -163,7 +163,7 @@
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-100">Manajemen Pembagian Tim Match (Komposisi Rata: 1 Anchor, 2 Flank, 1 Pivot)</h2>
+                        <h2 class="text-lg font-bold text-slate-100">Manajemen Pembagian Tim Match (Komposisi Wajib: 1 Anchor, 2 Flank, 1 Pivot, 1 GK)</h2>
                         <p class="text-sm text-slate-400 mt-1">Admin: Atur rompi & nomor punggung | Pelatih: Tandai / evaluasi pemain.</p>
                     </div>
 
@@ -178,7 +178,7 @@
 
                         <button onclick="generateTeams()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-900/40 flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            <span>Acak Tim Otomatis (Rata Posisi)</span>
+                            <span>Acak Tim Otomatis (Wajib Rata)</span>
                         </button>
                     </div>
                 </div>
@@ -705,7 +705,7 @@
             XLSX.writeFile(workbook, "Rekap_Peserta_Hadir_Futsal.xlsx");
         }
 
-        // --- ALGORITMA BARU: PEMBAGIAN TIM RATA (1 Anchor, 2 Flank, 1 Pivot, 1 GK) ---
+        // --- ALGORITMA WAJIB RATA: 1 Anchor, 2 Flank, 1 Pivot, 1 GK persis di setiap tim ---
         function generateTeams() {
             const presentPlayers = participants.filter(p => p.present);
 
@@ -714,15 +714,22 @@
             const flanks = shuffleArray(presentPlayers.filter(p => p.position === 'Flank'));
             const pivots = shuffleArray(presentPlayers.filter(p => p.position === 'Pivot'));
 
-            // Tentukan jumlah tim berdasarkan ketersediaan posisi agar seimbang
-            let numTeams = Math.max(
-                Math.floor(flanks.length / 2),
-                anchors.length,
-                pivots.length,
+            // Tentukan jumlah tim maksimum yang bisa dibuat dengan formasi lengkap (1 Anchor, 2 Flank, 1 Pivot, 1 GK)
+            let numTeams = Math.min(
                 gkHadir.length,
-                2
+                anchors.length,
+                Math.floor(flanks.length / 2),
+                pivots.length
             );
-            if(numTeams % 2 !== 0) numTeams++; // Pastikan genap agar berpasangan match
+
+            if (numTeams < 1) {
+                alert("Jumlah pemain hadir kurang lengkap untuk membentuk minimal 1 tim dengan formasi lengkap (Butuh minimal: 1 GK, 1 Anchor, 2 Flank, 1 Pivot).");
+                return;
+            }
+
+            if(numTeams % 2 !== 0 && numTeams > 1) {
+                numTeams--; // Buat genap agar berpasangan tanding, sisa pemain masuk daftar sisa
+            }
 
             let newTeams = [];
             for(let i = 0; i < numTeams; i++) {
@@ -730,47 +737,14 @@
                 newTeams.push({ 
                     name: `Tim ${i+1}`, 
                     vestColorId: colorId,
-                    players: [null, null, null, null], // Slot 0,1 = Flank; Slot 2 = Anchor; Slot 3 = Pivot (atau disebar)
-                    gkPlayer: null
+                    players: [
+                        { player: { id: anchors.shift().id }, vestNum: "" }, // Slot 0: Anchor
+                        { player: { id: flanks.shift().id }, vestNum: "" },  // Slot 1: Flank 1
+                        { player: { id: flanks.shift().id }, vestNum: "" },  // Slot 2: Flank 2
+                        { player: { id: pivots.shift().id }, vestNum: "" }   // Slot 3: Pivot
+                    ],
+                    gkPlayer: { player: { id: gkHadir.shift().id }, vestNum: "" } // Kiper
                 });
-            }
-
-            // 1. Masukkan Kiper bergantian
-            let tIdx = 0;
-            while(gkHadir.length > 0 && tIdx < newTeams.length) {
-                newTeams[tIdx].gkPlayer = { player: { id: gkHadir.shift().id }, vestNum: "" };
-                tIdx++;
-            }
-
-            // 2. Masukkan 1 Anchor per tim secara merata
-            tIdx = 0;
-            while(anchors.length > 0 && tIdx < newTeams.length) {
-                let emptyAnchor = newTeams[tIdx].players.findIndex(s => s === null || s.player === null);
-                if(emptyAnchor !== -1) {
-                    newTeams[tIdx].players[emptyAnchor] = { player: { id: anchors.shift().id }, vestNum: "" };
-                }
-                tIdx++;
-            }
-
-            // 3. Masukkan 1 Pivot per tim secara merata
-            tIdx = 0;
-            while(pivots.length > 0 && tIdx < newTeams.length) {
-                let emptyPivot = newTeams[tIdx].players.findIndex(s => s === null || s.player === null);
-                if(emptyPivot !== -1) {
-                    newTeams[tIdx].players[emptyPivot] = { player: { id: pivots.shift().id }, vestNum: "" };
-                }
-                tIdx++;
-            }
-
-            // 4. Masukkan 2 Flank per tim secara merata
-            tIdx = 0;
-            while(flanks.length > 0) {
-                let emptyFlank = newTeams[tIdx].players.findIndex(s => s === null || s.player === null);
-                if(emptyFlank !== -1) {
-                    newTeams[tIdx].players[emptyFlank] = { player: { id: flanks.shift().id }, vestNum: "" };
-                }
-                tIdx++;
-                if(tIdx >= newTeams.length) tIdx = 0;
             }
 
             teams = newTeams;
@@ -1049,7 +1023,7 @@
                                 ${gkHTML}
                             </div>
                             <div class="space-y-2">
-                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pemain Lapangan (1 Anchor, 2 Flank, 1 Pivot)</span>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pemain Lapangan (Wajib: 1 Anchor, 2 Flank, 1 Pivot)</span>
                                 ${playersHTML}
                             </div>
                         </div>
