@@ -23,7 +23,7 @@
                 <div class="bg-emerald-500 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl text-base tracking-wider shadow-md shadow-emerald-500/20">SF</div>
                 <div>
                     <h1 class="text-lg font-bold tracking-tight text-slate-100">Sistem Seleksi Futsal</h1>
-                    <p class="text-sm text-slate-400">Tim Futsal Ponprov Kab. Kediri (Cloud Sync)</p>
+                    <p class="text-sm text-slate-400">Tim Futsal Ponprov Kab. Kediri (Firebase Live Sync)</p>
                 </div>
             </div>
             
@@ -31,7 +31,7 @@
             <nav class="flex flex-wrap gap-2 justify-center" id="nav-tabs">
                 <button onclick="switchTab('presensi')" data-tab="presensi" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-emerald-600 text-white shadow-md shadow-emerald-900/40 flex items-center gap-2.5">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"/></svg>
-                    Presensi (<span id="badge-hadir">0</span>/40)
+                    Presensi (<span id="badge-hadir">0</span>)
                 </button>
                 <button onclick="switchTab('rekap')" data-tab="rekap" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -57,12 +57,11 @@
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h2 class="text-lg font-bold text-slate-100">Daftar Kehadiran Peserta (Admin)</h2>
-                        <p class="text-sm text-slate-400">Centang kehadiran, tanyakan Strongest Foot & Asal Klub saat peserta tiba.</p>
+                        <p class="text-sm text-slate-400">Data diambil langsung dari Database Firebase (Real-time).</p>
                     </div>
                     <div class="flex flex-wrap gap-2.5">
                         <button onclick="setAllAttendance(true)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition">Centang Semua</button>
                         <button onclick="setAllAttendance(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition">Reset Kehadiran</button>
-                        <button onclick="resetDummyData()" class="px-4 py-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border border-rose-900/50 rounded-xl text-sm font-semibold transition">Reset Data Dummy</button>
                     </div>
                 </div>
 
@@ -350,16 +349,16 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Ganti dengan firebaseConfig milikmu dari Firebase Console
-const firebaseConfig = {
-  apiKey: "AIzaSyDARoARtFkgQB-7J_mG_DDAcSIIwzVKaG8",
-  authDomain: "seleksi-futsal.firebaseapp.com",
-  projectId: "seleksi-futsal",
-  storageBucket: "seleksi-futsal.firebasestorage.app",
-  messagingSenderId: "135886803788",
-  appId: "1:135886803788:web:fc201b65cc8d3b879ff5e9",
-  measurementId: "G-TFWX83H103"
-};
+        // Konfigurasi Firebase sesuai dengan akun kamu
+        const firebaseConfig = {
+            apiKey: "AIzaSyDARoARtFkgQB-7J_mG_DDAcSIIwzVKaG8",
+            authDomain: "seleksi-futsal.firebaseapp.com",
+            projectId: "seleksi-futsal",
+            storageBucket: "seleksi-futsal.firebasestorage.app",
+            messagingSenderId: "135886803788",
+            appId: "1:135886803788:web:fc201b65cc8d3b879ff5e9",
+            measurementId: "G-TFWX83H103"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -369,7 +368,6 @@ const firebaseConfig = {
         window.getDoc = getDoc;
         window.setDoc = setDoc;
 
-        // Panggil inisialisasi load data dari Firebase saat halaman dibuka
         if (typeof window.initFirebaseApp === 'function') {
             window.initFirebaseApp();
         }
@@ -399,61 +397,31 @@ const firebaseConfig = {
             { id: "white", name: "Putih", colorClass: "bg-slate-100", cardBg: "bg-slate-900/60", border: "border-slate-400/80", headerBg: "bg-slate-200/20", text: "text-slate-100", badge: "bg-slate-100 text-slate-950" }
         ];
 
-        function initDummyData() {
-            const firstNames = ["Ahmad", "Muhammad", "Rizky", "Dimas", "Fajar", "Bayu", "Reza", "Yoga", "Aditya", "Fikri", "Ilham", "Diki", "Galih", "Hafiz", "Iqbal", "Joko", "Kevin", "Lukman", "Naufal", "Pratama"];
-            const lastNames = ["Pratama", "Saputra", "Firmansyah", "Nugroho", "Santoso", "Hidayat", "Ramadhan", "Maulana", "Kurniawan", "Setiawan", "Wibowo", "Putra", "Fauzi", "Hakim", "Zulfikar", "Al Farizi", "Gunawan", "Effendi", "Siregar", "Utomo"];
-            const schools = ["SMA Negeri 1", "SMA Negeri 2", "SMA Negeri 3", "SMA Negeri 5", "SMA Swasta Mandiri", "SMK Telkom", "SMK Negeri 4", "MA Al-Hikmah"];
-            const positions = ["GK", "Anchor", "Flank", "Flank", "Pivot"];
-
-            let list = [];
-            for (let i = 1; i <= 40; i++) {
-                let name = `${firstNames[(i - 1) % firstNames.length]} ${lastNames[(i * 3) % lastNames.length]}`;
-                let pos = positions[(i - 1) % positions.length];
-                list.push({
-                    id: i,
-                    name: name,
-                    ttl: `Kediri, ${10 + (i % 15)}-0${(i % 9) + 1}-2008`,
-                    school: schools[i % schools.length],
-                    phone: `0812${Math.floor(10000000 + Math.random() * 90000000)}`,
-                    position: pos,
-                    foot: "Right",
-                    club: "", 
-                    present: i <= 32,
-                    starred: false, 
-                    passed: false, 
-                    notes: ""
-                });
-            }
-            return list;
-        }
-
         async function loadData() {
             try {
                 if (window.db) {
-                    const docRef = window.doc(window.db, "futsal_db", "state");
+                    // Mengambil data dari collection: futsal_data, document: participants
+                    const docRef = window.doc(window.db, "futsal_data", "participants");
                     const docSnap = await window.getDoc(docRef);
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        participants = data.participants || initDummyData();
-                        teams = data.teams || [];
+                        participants = data.list || [];
                     } else {
-                        participants = initDummyData();
-                        teams = [];
-                        generateTeams();
-                        await saveData();
+                        console.error("Dokumen peserta tidak ditemukan di Firestore!");
                     }
-                } else {
-                    participants = initDummyData();
-                    teams = [];
-                    generateTeams();
+
+                    // Mengambil data tim jika ada
+                    const docTeamsRef = window.doc(window.db, "futsal_data", "teams");
+                    const docTeamsSnap = await window.getDoc(docTeamsRef);
+                    if (docTeamsSnap.exists()) {
+                        teams = docTeamsSnap.data().list || [];
+                    }
                 }
             } catch (e) {
-                console.error("Gagal memuat dari Firebase, menggunakan dummy:", e);
-                participants = initDummyData();
-                teams = [];
+                console.error("Gagal memuat dari Firebase:", e);
             }
 
-            if(teams.length === 0) {
+            if(teams.length === 0 && participants.length > 0) {
                 generateTeams();
             }
             refreshAllViews();
@@ -462,8 +430,11 @@ const firebaseConfig = {
         async function saveData() {
             try {
                 if (window.db) {
-                    const docRef = window.doc(window.db, "futsal_db", "state");
-                    await window.setDoc(docRef, { participants, teams });
+                    const docRef = window.doc(window.db, "futsal_data", "participants");
+                    await window.setDoc(docRef, { list: participants });
+
+                    const docTeamsRef = window.doc(window.db, "futsal_data", "teams");
+                    await window.setDoc(docTeamsRef, { list: teams });
                 }
             } catch (e) {
                 console.error("Gagal menyimpan ke Firebase:", e);
@@ -473,16 +444,6 @@ const firebaseConfig = {
 
         window.initFirebaseApp = function() {
             loadData();
-        }
-
-        function resetDummyData() {
-            if(confirm("Reset semua data kembali ke data dummy awal?")) {
-                participants = initDummyData();
-                teams = [];
-                generateTeams();
-                saveData();
-                refreshAllViews();
-            }
         }
 
         function switchTab(tabID) {
@@ -605,13 +566,13 @@ const firebaseConfig = {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-800/50 transition cursor-pointer";
                 tr.innerHTML = `
-                    <td class="p-4 font-semibold text-slate-100 flex items-center gap-2" onclick="openProfileModal(${p.id})">
+                    <td class="p-4 font-semibold text-slate-100 flex items-center gap-2" onclick="openProfileModal('${p.id}')">
                         <span class="hover:underline">${p.name}</span>
                         ${getStatusIcon(p)}
                     </td>
-                    <td class="p-4 text-slate-300" onclick="openProfileModal(${p.id})">${p.school}</td>
-                    <td class="p-4 text-slate-400" onclick="openProfileModal(${p.id})">${p.phone}</td>
-                    <td class="p-4 text-center" onclick="openProfileModal(${p.id})">
+                    <td class="p-4 text-slate-300" onclick="openProfileModal('${p.id}')">${p.school}</td>
+                    <td class="p-4 text-slate-400" onclick="openProfileModal('${p.id}')">${p.phone}</td>
+                    <td class="p-4 text-center" onclick="openProfileModal('${p.id}')">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${
                             p.position === 'GK' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/50' :
                             p.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
@@ -621,15 +582,15 @@ const firebaseConfig = {
                     </td>
                     <td class="p-4 text-center">
                         <div class="inline-flex rounded-lg bg-slate-950 p-1 border border-slate-800 text-xs">
-                            <button onclick="updatePlayerFoot(${p.id}, 'Right')" class="px-3 py-1 rounded-md transition font-semibold ${p.foot === 'Right' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}">Right</button>
-                            <button onclick="updatePlayerFoot(${p.id}, 'Left')" class="px-3 py-1 rounded-md transition font-semibold ${p.foot === 'Left' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}">Left</button>
+                            <button onclick="updatePlayerFoot('${p.id}', 'Right')" class="px-3 py-1 rounded-md transition font-semibold ${p.foot === 'Right' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}">Right</button>
+                            <button onclick="updatePlayerFoot('${p.id}', 'Left')" class="px-3 py-1 rounded-md transition font-semibold ${p.foot === 'Left' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}">Left</button>
                         </div>
                     </td>
                     <td class="p-4">
-                        <input type="text" value="${p.club || ''}" placeholder="Isi klub..." onchange="updatePlayerClub(${p.id}, this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 w-32 placeholder-slate-600">
+                        <input type="text" value="${p.club || ''}" placeholder="Isi klub..." onchange="updatePlayerClub('${p.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 w-32 placeholder-slate-600">
                     </td>
                     <td class="p-4 text-right">
-                        <input type="checkbox" ${p.present ? 'checked' : ''} onchange="togglePresence(${p.id})" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
+                        <input type="checkbox" ${p.present ? 'checked' : ''} onchange="togglePresence('${p.id}')" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -637,7 +598,7 @@ const firebaseConfig = {
         }
 
         function updatePlayerFoot(id, foot) {
-            const p = participants.find(x => x.id === id);
+            const p = participants.find(x => x.id == id);
             if(p) {
                 p.foot = foot;
                 saveData();
@@ -646,7 +607,7 @@ const firebaseConfig = {
         }
 
         function updatePlayerClub(id, clubName) {
-            const p = participants.find(x => x.id === id);
+            const p = participants.find(x => x.id == id);
             if(p) {
                 p.club = clubName;
                 saveData();
@@ -654,7 +615,7 @@ const firebaseConfig = {
         }
 
         function togglePresence(id) {
-            const p = participants.find(x => x.id === id);
+            const p = participants.find(x => x.id == id);
             if(p) {
                 p.present = !p.present;
                 saveData();
@@ -709,14 +670,14 @@ const firebaseConfig = {
                     'hover:bg-slate-800/50'
                 }`;
                 tr.innerHTML = `
-                    <td class="p-4 text-center text-slate-500 font-mono" onclick="openProfileModal(${p.id})">${idx + 1}</td>
-                    <td class="p-4 font-semibold text-slate-100 flex items-center gap-2" onclick="openProfileModal(${p.id})">
+                    <td class="p-4 text-center text-slate-500 font-mono" onclick="openProfileModal('${p.id}')">${idx + 1}</td>
+                    <td class="p-4 font-semibold text-slate-100 flex items-center gap-2" onclick="openProfileModal('${p.id}')">
                         <span class="hover:underline">${p.name}</span>
                         ${getStatusIcon(p)}
                     </td>
-                    <td class="p-4 text-slate-300" onclick="openProfileModal(${p.id})">${p.school}</td>
-                    <td class="p-4 text-slate-400" onclick="openProfileModal(${p.id})">${p.phone}</td>
-                    <td class="p-4 text-center" onclick="openProfileModal(${p.id})">
+                    <td class="p-4 text-slate-300" onclick="openProfileModal('${p.id}')">${p.school}</td>
+                    <td class="p-4 text-slate-400" onclick="openProfileModal('${p.id}')">${p.phone}</td>
+                    <td class="p-4 text-center" onclick="openProfileModal('${p.id}')">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${
                             p.position === 'GK' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/50' :
                             p.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
@@ -724,8 +685,8 @@ const firebaseConfig = {
                             'bg-purple-950/60 text-purple-400 border border-purple-900/50'
                         }">${p.position}</span>
                     </td>
-                    <td class="p-4 text-center font-bold text-slate-300" onclick="openProfileModal(${p.id})">${p.foot || 'Right'}</td>
-                    <td class="p-4 text-slate-400" onclick="openProfileModal(${p.id})">${p.club || '-'}</td>
+                    <td class="p-4 text-center font-bold text-slate-300" onclick="openProfileModal('${p.id}')">${p.foot || 'Right'}</td>
+                    <td class="p-4 text-slate-400" onclick="openProfileModal('${p.id}')">${p.club || '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -879,7 +840,7 @@ const firebaseConfig = {
                 return;
             }
             activeQuickAssignId = pId;
-            const p = participants.find(x => x.id === pId);
+            const p = participants.find(x => x.id == pId);
             if(!p) return;
 
             document.getElementById('quick-assign-name').innerText = p.name;
@@ -913,7 +874,7 @@ const firebaseConfig = {
 
         function assignPlayerDirectly(tIdx) {
             if(activeQuickAssignId === null) return;
-            const p = participants.find(x => x.id === activeQuickAssignId);
+            const p = participants.find(x => x.id == activeQuickAssignId);
 
             if(p && teams[tIdx]) {
                 let existingCount = isPlayerInAnyTeam(p.id);
@@ -977,15 +938,15 @@ const firebaseConfig = {
                             <div class="flex items-center gap-2 truncate">
                                 <input type="text" value="${vNum}" placeholder="No" onchange="updateVestNum(${tIdx}, null, true, this.value)" title="Nomor Punggung" class="w-9 py-1 text-center font-bold bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 text-xs focus:outline-none focus:border-emerald-500 placeholder-slate-600">
                                 <span class="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-900">GK</span>
-                                <span class="text-slate-100 font-bold hover:underline cursor-pointer truncate" onclick="openProfileModal(${pGk.id})">${pGk.name}</span>
+                                <span class="text-slate-100 font-bold hover:underline cursor-pointer truncate" onclick="openProfileModal('${pGk.id}')">${pGk.name}</span>
                                 ${play2xBadge}
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <div class="flex items-center gap-1 bg-slate-900 border border-slate-800 px-1.5 py-1 rounded-lg">
-                                    <button onclick="toggleStarOnly(${pGk.id})" class="p-1 rounded hover:bg-slate-800 transition" title="Tandai (Pelatih)">
+                                    <button onclick="toggleStarOnly('${pGk.id}')" class="p-1 rounded hover:bg-slate-800 transition" title="Tandai (Pelatih)">
                                         <svg class="w-4 h-4 ${pGk.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                                     </button>
-                                    <button onclick="togglePassOnly(${pGk.id})" class="p-1 rounded hover:bg-slate-800 transition" title="Lolos Seleksi (Pelatih)">
+                                    <button onclick="togglePassOnly('${pGk.id}')" class="p-1 rounded hover:bg-slate-800 transition" title="Lolos Seleksi (Pelatih)">
                                         <svg class="w-4 h-4 ${pGk.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                     </button>
                                 </div>
@@ -1025,15 +986,15 @@ const firebaseConfig = {
                                         player.position === 'Anchor' ? 'bg-sky-950/60 text-sky-400 border border-sky-900/50' :
                                         player.position === 'Flank' ? 'bg-amber-950/60 text-amber-400 border border-amber-900/50' : 'bg-purple-950/60 text-purple-400 border border-purple-900/50'
                                     }">${player.position}</span>
-                                    <span class="text-slate-100 font-semibold hover:underline cursor-pointer truncate" onclick="openProfileModal(${player.id})">${player.name}</span>
+                                    <span class="text-slate-100 font-semibold hover:underline cursor-pointer truncate" onclick="openProfileModal('${player.id}')">${player.name}</span>
                                     ${play2xBadge}
                                 </div>
                                 <div class="flex items-center gap-1.5 shrink-0">
                                     <div class="flex items-center gap-1 bg-slate-950 border border-slate-800 px-1.5 py-1 rounded-lg">
-                                        <button onclick="toggleStarOnly(${player.id})" class="p-1 rounded hover:bg-slate-900 transition" title="Tandai (Pelatih)">
+                                        <button onclick="toggleStarOnly('${player.id}')" class="p-1 rounded hover:bg-slate-900 transition" title="Tandai (Pelatih)">
                                             <svg class="w-4 h-4 ${player.starred ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                                         </button>
-                                        <button onclick="togglePassOnly(${player.id})" class="p-1 rounded hover:bg-slate-900 transition" title="Lolos Seleksi (Pelatih)">
+                                        <button onclick="togglePassOnly('${player.id}')" class="p-1 rounded hover:bg-slate-900 transition" title="Lolos Seleksi (Pelatih)">
                                             <svg class="w-4 h-4 ${player.passed ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         </button>
                                     </div>
@@ -1239,14 +1200,14 @@ const firebaseConfig = {
                             </div>
                         </div>
                     </div>
-                    <button onclick="assignPlayerToSlot(${p.id})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold">Pilih</button>
+                    <button onclick="assignPlayerToSlot('${p.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold">Pilih</button>
                 `;
                 container.appendChild(div);
             });
         }
 
         function assignPlayerToSlot(pId) {
-            const player = participants.find(x => x.id === pId);
+            const player = participants.find(x => x.id == pId);
             const { teamIndex, playerIndex, isGkSlot } = activeModalTarget;
 
             if(player && teamIndex !== null) {
@@ -1273,7 +1234,7 @@ const firebaseConfig = {
         }
 
         function openProfileModal(id) {
-            const p = participants.find(x => x.id === id);
+            const p = participants.find(x => x.id == id);
             if(!p) return;
 
             activeProfilePlayerId = id;
@@ -1340,7 +1301,7 @@ const firebaseConfig = {
         function saveProfileChanges() {
             if(!activeProfilePlayerId) return;
 
-            const p = participants.find(x => x.id === activeProfilePlayerId);
+            const p = participants.find(x => x.id == activeProfilePlayerId);
             if(p) {
                 p.foot = selectedProfileFoot;
                 p.club = document.getElementById('profile-club-input').value;
@@ -1404,7 +1365,7 @@ const firebaseConfig = {
                     <span class="text-slate-500 font-mono text-xs w-5">${num}.</span>
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="font-bold text-slate-100 text-base hover:underline cursor-pointer" onclick="openProfileModal(${p.id})">${p.name}</span>
+                            <span class="font-bold text-slate-100 text-base hover:underline cursor-pointer" onclick="openProfileModal('${p.id}')">${p.name}</span>
                             ${getStatusIcon(p)}
                         </div>
                         <div class="flex items-center gap-2 mt-1">
@@ -1422,7 +1383,7 @@ const firebaseConfig = {
                         ${p.notes ? `<p class="text-xs text-slate-400 italic mt-1.5 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800/80 inline-block">Catatan Pelatih: "${p.notes}"</p>` : ''}
                     </div>
                 </div>
-                <button onclick="removeCandidateStatus(${p.id})" class="p-2.5 bg-rose-950/30 hover:bg-rose-900/50 text-rose-400 border border-rose-900/40 rounded-xl transition shrink-0" title="Keluarkan dari Kandidat">
+                <button onclick="removeCandidateStatus('${p.id}')" class="p-2.5 bg-rose-950/30 hover:bg-rose-900/50 text-rose-400 border border-rose-900/40 rounded-xl transition shrink-0" title="Keluarkan dari Kandidat">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             `;
@@ -1435,7 +1396,7 @@ const firebaseConfig = {
 
             const dataToExport = candidates.map((p, index) => ({
                 No: index + 1,
-                Nama: p.name,
+                Nama: data.name,
                 TTL: p.ttl,
                 "Asal Sekolah": p.school,
                 "No. HP": p.phone,
