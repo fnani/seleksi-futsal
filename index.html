@@ -120,20 +120,20 @@
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h2 class="text-lg font-bold text-slate-100">Daftar Lengkap Peserta Hadir (Rekap Admin)</h2>
-                        <p class="text-sm text-slate-400">Pengelompokan seluruh peserta hadir untuk laporan atau pemulihan data.</p>
+                        <p class="text-sm text-slate-400">Pengelompokan seluruh peserta hadir untuk laporan atau pemulihan data total.</p>
                     </div>
                     <div class="flex flex-wrap gap-2.5">
-                        <!-- Tombol Export / Backup Data -->
-                        <button onclick="exportRekapExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-md shadow-emerald-900/40">
+                        <!-- Tombol Backup Total (Peserta + Tim) -->
+                        <button onclick="exportFullBackupExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-md shadow-emerald-900/40">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            <span>Export / Backup Data (.xlsx)</span>
+                            <span>Backup Total (Peserta & Tim) (.xlsx)</span>
                         </button>
 
-                        <!-- Tombol Restore / Upload Backup -->
+                        <!-- Tombol Restore Total -->
                         <label class="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-sm transition cursor-pointer flex items-center gap-2 shadow-md shadow-amber-900/40">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                             <span>Restore dari Backup (.xlsx)</span>
-                            <input type="file" id="import-excel-file" accept=".xlsx, .xls" onchange="importDataFromExcel(event)" class="hidden">
+                            <input type="file" id="import-excel-file" accept=".xlsx, .xls" onchange="importFullBackupFromExcel(event)" class="hidden">
                         </label>
                     </div>
                 </div>
@@ -691,7 +691,11 @@
             });
         }
 
-        function exportRekapExcel() {
+        // --- FITUR BARU: BACKUP TOTAL (PESERTA & TIM DALAM 1 FILE EXCEL BERISI 2 TAB) ---
+        function exportFullBackupExcel() {
+            let workbook = XLSX.utils.book_new();
+
+            // Sheet 1: Data Peserta (Hadir, Status, Foot, Klub, Catatan)
             let presentList = participants.filter(p => p.present);
             presentList.sort((a, b) => {
                 let scoreA = a.passed ? 2 : (a.starred ? 1 : 0);
@@ -699,8 +703,9 @@
                 return scoreB - scoreA;
             });
 
-            const dataToExport = presentList.map((p, index) => ({
+            const pesertaData = presentList.map((p, index) => ({
                 No: index + 1,
+                ID: p.id,
                 Nama: p.name,
                 TTL: p.ttl || "-",
                 "Asal Sekolah": p.school,
@@ -711,15 +716,61 @@
                 Catatan: p.notes || "-",
                 Status: p.passed ? "Lolos" : (p.starred ? "Ditandai" : "Belum Keputusan")
             }));
-            
-            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Peserta Hadir");
-            XLSX.writeFile(workbook, "Backup_Data_Seleksi_Futsal.xlsx");
+            const wsParticipants = XLSX.utils.json_to_sheet(pesertaData);
+            XLSX.utils.book_append_sheet(workbook, wsParticipants, "Data Peserta");
+
+            // Sheet 2: Data Tim (Komposisi Tim, Rompi, Nomor Punggung)
+            let teamExportData = [];
+            teams.forEach((team, tIdx) => {
+                let vObj = VEST_COLORS.find(v => v.id === team.vestColorId) || VEST_COLORS[0];
+                let matchNum = Math.floor(tIdx / 2) + 1;
+
+                if (team.gkPlayer && team.gkPlayer.player) {
+                    let gId = team.gkPlayer.player.id;
+                    let realGk = participants.find(x => String(x.id) === String(gId)) || team.gkPlayer.player;
+                    teamExportData.push({
+                        "Match": `Match #${matchNum}`,
+                        "Nama Tim": team.name,
+                        "Warna Rompi": vObj.name,
+                        "ID Pemain": realGk.id || "",
+                        "No. Punggung": team.gkPlayer.vestNum || "-",
+                        "Posisi": "GK",
+                        "Nama Pemain": realGk.name || "-",
+                        "Asal Sekolah": realGk.school || "-",
+                        "No. HP": realGk.phone || "-",
+                        "Klub": realGk.club || "-"
+                    });
+                }
+
+                team.players.forEach((slot) => {
+                    if (slot && slot.player) {
+                        let pId = slot.player.id;
+                        let realPlayer = participants.find(x => String(x.id) === String(pId)) || slot.player;
+                        teamExportData.push({
+                            "Match": `Match #${matchNum}`,
+                            "Nama Tim": team.name,
+                            "Warna Rompi": vObj.name,
+                            "ID Pemain": realPlayer.id || "",
+                            "No. Punggung": slot.vestNum || "-",
+                            "Posisi": realPlayer.position || "-",
+                            "Nama Pemain": realPlayer.name || "-",
+                            "Asal Sekolah": realPlayer.school || "-",
+                            "No. HP": realPlayer.phone || "-",
+                            "Klub": realPlayer.club || "-"
+                        });
+                    }
+                });
+            });
+
+            const wsTeams = XLSX.utils.json_to_sheet(teamExportData.length > 0 ? teamExportData : [{ Info: "Belum ada tim" }]);
+            XLSX.utils.book_append_sheet(workbook, wsTeams, "Data Tim & Match");
+
+            // Unduh File Excel Total
+            XLSX.writeFile(workbook, "Backup_Total_Seleksi_Futsal.xlsx");
         }
 
-        // --- FITUR RESTORE / UPLOAD BACKUP EXCEL (.xlsx) ---
-        function importDataFromExcel(event) {
+        // --- FITUR BARU: RESTORE TOTAL (PESERTA & TIM KEMBALI SEPERTI SEMULA) ---
+        function importFullBackupFromExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -728,49 +779,82 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const rows = XLSX.utils.sheet_to_json(worksheet);
 
-                    if (rows.length === 0) {
-                        alert("File Excel kosong atau format tidak sesuai!");
-                        return;
-                    }
-
-                    if (!confirm(`Ditemukan ${rows.length} baris data dari file backup. Apakah Anda yakin ingin memulihkan (restore) data ini ke sistem?`)) {
-                        return;
-                    }
-
-                    let updatedCount = 0;
-                    rows.forEach(row => {
-                        const nameInRow = row["Nama"] || row["Nama Pemain"];
-                        if (nameInRow) {
-                            const p = participants.find(x => x.name.trim().toLowerCase() === String(nameInRow).trim().toLowerCase());
-                            if (p) {
-                                p.present = true; 
-                                if (row["Strongest Foot"]) p.foot = row["Strongest Foot"];
-                                if (row["Klub"]) p.club = row["Klub"];
-                                if (row["Catatan"] || row["Catatan Pelatih"]) p.notes = row["Catatan"] || row["Catatan Pelatih"];
-                                
-                                const status = row["Status"];
-                                if (status === "Lolos" || status === "Lolos Seleksi") {
-                                    p.passed = true;
-                                    p.starred = false;
-                                } else if (status === "Ditandai" || status === "Ditandai Pelatih") {
-                                    p.starred = true;
-                                    p.passed = false;
+                    let restoredParticipantsCount = 0;
+                    
+                    // 1. Restore Sheet Peserta jika ada
+                    if (workbook.Sheets["Data Peserta"]) {
+                        const pesertaRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Peserta"]);
+                        pesertaRows.forEach(row => {
+                            const nameInRow = row["Nama"];
+                            if (nameInRow) {
+                                const p = participants.find(x => x.name.trim().toLowerCase() === String(nameInRow).trim().toLowerCase());
+                                if (p) {
+                                    p.present = true;
+                                    if (row["Strongest Foot"]) p.foot = row["Strongest Foot"];
+                                    if (row["Klub"] && row["Klub"] !== "-") p.club = row["Klub"];
+                                    if (row["Catatan"] && row["Catatan"] !== "-") p.notes = row["Catatan"];
+                                    
+                                    const status = row["Status"];
+                                    if (status === "Lolos") {
+                                        p.passed = true;
+                                        p.starred = false;
+                                    } else if (status === "Ditandai") {
+                                        p.starred = true;
+                                        p.passed = false;
+                                    }
+                                    restoredParticipantsCount++;
                                 }
-                                updatedCount++;
                             }
+                        });
+                    }
+
+                    // 2. Restore Sheet Tim jika ada
+                    if (workbook.Sheets["Data Tim & Match"]) {
+                        const teamRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Tim & Match"]);
+                        let restoredTeamsMap = {};
+
+                        teamRows.forEach(row => {
+                            let tName = row["Nama Tim"];
+                            let pName = row["Nama Pemain"];
+                            let pos = row["Posisi"];
+                            let vNum = row["No. Punggung"] === "-" ? "" : String(row["No. Punggung"] || "");
+                            let vColorName = row["Warna Rompi"] || "Merah";
+
+                            if (tName && pName) {
+                                let playerObj = participants.find(x => x.name.trim().toLowerCase() === String(pName).trim().toLowerCase());
+                                if (playerObj) {
+                                    if (!restoredTeamsMap[tName]) {
+                                        let foundColor = VEST_COLORS.find(v => v.name.toLowerCase() === vColorName.toLowerCase()) || VEST_COLORS[0];
+                                        restoredTeamsMap[tName] = {
+                                            name: tName,
+                                            vestColorId: foundColor.id,
+                                            players: [],
+                                            gkPlayer: null
+                                        };
+                                    }
+
+                                    if (pos === "GK") {
+                                        restoredTeamsMap[tName].gkPlayer = { player: { id: playerObj.id }, vestNum: vNum };
+                                    } else {
+                                        restoredTeamsMap[tName].players.push({ player: { id: playerObj.id }, vestNum: vNum });
+                                    }
+                                }
+                            }
+                        });
+
+                        let newTeamsArray = Object.values(restoredTeamsMap);
+                        if (newTeamsArray.length > 0) {
+                            teams = newTeamsArray;
                         }
-                    });
+                    }
 
                     saveData();
                     refreshAllViews();
-                    alert(`BERHASIL MEMULIHKAN DATA! 🎉\n\n${updatedCount} peserta berhasil disinkronkan kembali dari file backup.`);
+                    alert(`PEMULIHAN BERHASIL! 🎉\n\n- ${restoredParticipantsCount} data peserta & status pelatih dipulihkan.\n- Susunan tim & match berhasil dikembalikan.`);
                 } catch (err) {
-                    console.error("Gagal mengimpor Excel:", err);
-                    alert("Gagal membaca file Excel. Pastikan file backup yang diunggah berformat .xlsx/.xls yang benar!");
+                    console.error("Gagal restore file:", err);
+                    alert("Gagal membaca file Excel. Pastikan file backup yang diunggah adalah file .xlsx yang benar!");
                 }
                 event.target.value = ''; 
             };
@@ -816,8 +900,7 @@
                             "Posisi": realPlayer.position || "-",
                             "Nama Pemain": realPlayer.name || "-",
                             "Asal Sekolah": realPlayer.school || "-",
-                            "No. HP": realPlayer.phone || "-",
-                            "Klub": realPlayer.club || "-"
+                            "No. HP": realPlayer.phone || "-"
                         });
                     }
                 });
@@ -826,7 +909,7 @@
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Daftar Tim Match");
-            XLSX.writeFile(workbook, "Backup_Tim_dan_Match_Futsal.xlsx");
+            XLSX.writeFile(workbook, "Daftar_Tim_dan_Match_Futsal.xlsx");
         }
 
         // --- ALGORITMA WAJIB RATA: 1 Anchor, 2 Flank, 1 Pivot, 1 GK persis di setiap tim ---
