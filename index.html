@@ -6,7 +6,7 @@
     <title>Sistem Seleksi Futsal - Tim Futsal Ponprov Kab. Kediri</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS (xlsx) untuk export ke Excel -->
+    <!-- SheetJS (xlsx) untuk export & import Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         .tab-content { display: none; }
@@ -120,9 +120,16 @@
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h2 class="text-lg font-bold text-slate-100">Daftar Lengkap Peserta Hadir (Rekap Admin)</h2>
-                        <p class="text-sm text-slate-400">Pengelompokan seluruh peserta hadir berdasarkan posisi untuk dicetak.</p>
+                        <p class="text-sm text-slate-400">Pengelompokan seluruh peserta hadir berdasarkan posisi untuk dicetak atau dipulihkan.</p>
                     </div>
-                    <div>
+                    <div class="flex flex-wrap gap-2.5">
+                        <!-- FITUR BARU: RESTORE / IMPORT DATA EXCEL -->
+                        <label class="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-sm transition cursor-pointer flex items-center gap-2 shadow-md shadow-amber-900/40">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <span>Restore / Import Excel (.xlsx)</span>
+                            <input type="file" id="import-excel-file" accept=".xlsx, .xls" onchange="importDataFromExcel(event)" class="hidden">
+                        </label>
+
                         <button onclick="exportRekapExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-md shadow-emerald-900/40">
                             <span>Cetak / Export Excel (.xlsx)</span>
                         </button>
@@ -693,7 +700,7 @@
             const dataToExport = presentList.map((p, index) => ({
                 No: index + 1,
                 Nama: p.name,
-                TTL: p.ttl,
+                TTL: p.ttl || "-",
                 "Asal Sekolah": p.school,
                 "No. HP": p.phone,
                 Posisi: p.position,
@@ -709,7 +716,66 @@
             XLSX.writeFile(workbook, "Rekap_Peserta_Hadir_Futsal.xlsx");
         }
 
-        // --- FITUR BARU: EXPORT KELOLA TIM KE EXCEL (.xlsx) ---
+        // --- FITUR UNGGULAN: IMPORT & PEMULIHAN DATA DARURAT DARI EXCEL (.xlsx) ---
+        function importDataFromExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (rows.length === 0) {
+                        alert("File Excel kosong atau format tidak sesuai!");
+                        return;
+                    }
+
+                    if (!confirm(`Ditemukan ${rows.length} baris data di file Excel. Apakah Anda yakin ingin memulihkan (restore) data ini ke aplikasi?`)) {
+                        return;
+                    }
+
+                    let updatedCount = 0;
+                    rows.forEach(row => {
+                        // Cari nama peserta yang cocok di database
+                        const nameInRow = row["Nama"] || row["Nama Pemain"];
+                        if (nameInRow) {
+                            const p = participants.find(x => x.name.trim().toLowerCase() === String(nameInRow).trim().toLowerCase());
+                            if (p) {
+                                p.present = true; // Otomatis diset Hadir
+                                if (row["Strongest Foot"]) p.foot = row["Strongest Foot"];
+                                if (row["Klub"]) p.club = row["Klub"];
+                                if (row["Catatan"] || row["Catatan Pelatih"]) p.notes = row["Catatan"] || row["Catatan Pelatih"];
+                                
+                                const status = row["Status"];
+                                if (status === "Lolos" || status === "Lolos Seleksi") {
+                                    p.passed = true;
+                                    p.starred = false;
+                                } else if (status === "Ditandai" || status === "Ditandai Pelatih") {
+                                    p.starred = true;
+                                    p.passed = false;
+                                }
+                                updatedCount++;
+                            }
+                        }
+                    });
+
+                    saveData();
+                    refreshAllViews();
+                    alert(`BERHASIL MEMULIHKAN DATA! 🎉\n\n${updatedCount} peserta berhasil diperbarui status kehadiran, posisi, dan catatannya.`);
+                } catch (err) {
+                    console.error("Gagal mengimpor Excel:", err);
+                    alert("Gagal membaca file Excel. Pastikan file yang diunggah adalah file .xlsx/.xls yang benar!");
+                }
+                event.target.value = ''; // Reset input file
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
         function exportTeamsExcel() {
             if (teams.length === 0) {
                 alert("Belum ada data tim yang terbentuk untuk diexport.");
@@ -721,7 +787,6 @@
                 let vObj = VEST_COLORS.find(v => v.id === team.vestColorId) || VEST_COLORS[0];
                 let matchNum = Math.floor(tIdx / 2) + 1;
 
-                // Masukkan data Kiper jika ada
                 if (team.gkPlayer && team.gkPlayer.player) {
                     let gId = team.gkPlayer.player.id;
                     let realGk = participants.find(x => String(x.id) === String(gId)) || team.gkPlayer.player;
@@ -738,7 +803,6 @@
                     });
                 }
 
-                // Masukkan data Pemain Lapangan
                 team.players.forEach((slot) => {
                     if (slot && slot.player) {
                         let pId = slot.player.id;
@@ -1261,7 +1325,7 @@
 
             activeProfilePlayerId = id;
             document.getElementById('profile-name').innerText = p.name;
-            document.getElementById('profile-school-ttl').innerText = `${p.school} • ${p.ttl}`;
+            document.getElementById('profile-school-ttl').innerText = `${p.school} • ${p.ttl || ''}`;
             document.getElementById('profile-position').innerText = p.position;
             document.getElementById('profile-phone').innerText = p.phone;
             document.getElementById('profile-club-input').value = p.club || '';
@@ -1419,7 +1483,7 @@
             const dataToExport = candidates.map((p, index) => ({
                 No: index + 1,
                 Nama: p.name,
-                TTL: p.ttl,
+                TTL: p.ttl || "-",
                 "Asal Sekolah": p.school,
                 "No. HP": p.phone,
                 Posisi: p.position,
