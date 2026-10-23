@@ -6,34 +6,21 @@
     <title>Sistem Seleksi Futsal - Tim Futsal Ponprov Kab. Kediri</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS (xlsx) untuk export ke Excel -->
+    <!-- SheetJS (xlsx) untuk export/import ke Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-      .tab-content {
-        display: none;
-      }
-      .tab-content.active {
-        display: block;
-      }
-      #unassigned-drawer {
-        transition: transform 0.3s ease-in-out;
-      }
+      .tab-content { display: none; }
+      .tab-content.active { display: block; }
+      #unassigned-drawer { transition: transform 0.3s ease-in-out; }
     </style>
   </head>
-  <body
-    class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-slate-950"
-  >
+  <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
+    
     <!-- Header / Navbar -->
-    <header
-      class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md"
-    >
-      <div
-        class="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-center gap-4"
-      >
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md">
+      <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-3">
-          <div
-            class="bg-emerald-500 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl text-base tracking-wider shadow-md shadow-emerald-500/20"
-          >
+          <div class="bg-emerald-500 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl text-base tracking-wider shadow-md shadow-emerald-500/20">
             SF
           </div>
           <div>
@@ -45,48 +32,23 @@
         </div>
 
         <!-- Indicator Sync -->
-        <div
-          class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs"
-        >
-          <span
-            id="sync-status-dot"
-            class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"
-          ></span>
-          <span id="sync-status-text" class="text-slate-300 font-semibold"
-            >Connecting Cloud...</span
-          >
+        <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+          <span id="sync-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+          <span id="sync-status-text" class="text-slate-300 font-semibold">Connecting Cloud...</span>
         </div>
 
         <!-- Navigation Tabs -->
         <nav class="flex flex-wrap gap-2 justify-center" id="nav-tabs">
-          <button
-            onclick="switchTab('presensi')"
-            data-tab="presensi"
-            class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-emerald-600 text-white shadow-md shadow-emerald-900/40 flex items-center gap-2.5"
-          >
-            Presensi (<span id="badge-hadir">0</span>/<span id="badge-total"
-              >0</span
-            >)
+          <button id="btn-tab-presensi" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-emerald-600 text-white shadow-md shadow-emerald-900/40 flex items-center gap-2.5">
+            Presensi (<span id="badge-hadir">0</span>/<span id="badge-total">0</span>)
           </button>
-          <button
-            onclick="switchTab('rekap')"
-            data-tab="rekap"
-            class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5"
-          >
+          <button id="btn-tab-rekap" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5">
             Rekap Posisi
           </button>
-          <button
-            onclick="switchTab('teams')"
-            data-tab="teams"
-            class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5"
-          >
+          <button id="btn-tab-teams" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5">
             Kelola Tim
           </button>
-          <button
-            onclick="switchTab('matchup')"
-            data-tab="matchup"
-            class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5"
-          >
+          <button id="btn-tab-matchup" class="nav-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-2.5">
             Kandidat (<span id="count-starred-badge">0</span>)
           </button>
         </nav>
@@ -97,44 +59,24 @@
     <main class="max-w-7xl mx-auto px-6 py-8">
       <!-- TAB 1: PRESENSI -->
       <section id="tab-presensi" class="tab-content active space-y-6">
-        <div
-          class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl"
-        >
-          <div
-            class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6"
-          >
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div>
-              <h2 class="text-lg font-bold text-slate-100">
-                Daftar Kehadiran Peserta
-              </h2>
-              <p class="text-sm text-slate-400">
-                Centang kehadiran, tanyakan Strongest Foot & Asal Klub saat
-                peserta tiba.
-              </p>
+              <h2 class="text-lg font-bold text-slate-100">Daftar Kehadiran Peserta</h2>
+              <p class="text-sm text-slate-400">Centang kehadiran, tanyakan Strongest Foot & Asal Klub saat peserta tiba.</p>
             </div>
-            <div class="flex gap-2">
-              <button
-                onclick="openAddParticipantModal()"
-                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow"
-              >
-                + Tambah Peserta Baru
-              </button>
+            <div class="flex flex-wrap gap-2">
+              <label class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-slate-950 font-bold rounded-xl text-sm transition shadow cursor-pointer flex items-center gap-2">
+                📂 Import Excel Pendaftar
+                <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden" />
+              </label>
+              <button id="btn-open-modal" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow">+ Tambah Peserta Baru</button>
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <input
-              type="text"
-              id="search-input"
-              oninput="renderPresensiTable()"
-              placeholder="Cari nama atau asal sekolah..."
-              class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-500"
-            />
-            <select
-              id="filter-posisi"
-              onchange="renderPresensiTable()"
-              class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-300"
-            >
+            <input type="text" id="search-input" placeholder="Cari nama atau asal sekolah..." class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-500" />
+            <select id="filter-posisi" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-300">
               <option value="">Semua Posisi</option>
               <option value="GK">GK (Kiper)</option>
               <option value="Anchor">Anchor</option>
@@ -145,9 +87,7 @@
 
           <div class="overflow-x-auto rounded-xl border border-slate-800">
             <table class="w-full text-left border-collapse text-sm">
-              <thead
-                class="bg-slate-950 text-slate-400 uppercase font-bold text-xs"
-              >
+              <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
                 <tr>
                   <th class="p-4">Nama Peserta</th>
                   <th class="p-4">Asal Sekolah</th>
@@ -158,10 +98,7 @@
                   <th class="p-4 text-right w-24">Hadir</th>
                 </tr>
               </thead>
-              <tbody
-                id="presensi-table-body"
-                class="divide-y divide-slate-800"
-              ></tbody>
+              <tbody id="presensi-table-body" class="divide-y divide-slate-800"></tbody>
             </table>
           </div>
         </div>
@@ -170,95 +107,36 @@
       <!-- TAB 2: REKAP POSISI -->
       <section id="tab-rekap" class="tab-content space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div
-            class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl"
-          >
-            <p
-              class="text-xs text-slate-400 uppercase font-bold tracking-wider"
-            >
-              Kiper (GK) Hadir
-            </p>
-            <h3
-              class="text-3xl font-extrabold text-emerald-400 mt-2"
-              id="count-rekap-gk"
-            >
-              0
-            </h3>
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Kiper (GK) Hadir</p>
+            <h3 class="text-3xl font-extrabold text-emerald-400 mt-2" id="count-rekap-gk">0</h3>
           </div>
-          <div
-            class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl"
-          >
-            <p
-              class="text-xs text-slate-400 uppercase font-bold tracking-wider"
-            >
-              Anchor Hadir
-            </p>
-            <h3
-              class="text-3xl font-extrabold text-sky-400 mt-2"
-              id="count-rekap-anchor"
-            >
-              0
-            </h3>
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Anchor Hadir</p>
+            <h3 class="text-3xl font-extrabold text-sky-400 mt-2" id="count-rekap-anchor">0</h3>
           </div>
-          <div
-            class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl"
-          >
-            <p
-              class="text-xs text-slate-400 uppercase font-bold tracking-wider"
-            >
-              Flank Hadir
-            </p>
-            <h3
-              class="text-3xl font-extrabold text-amber-400 mt-2"
-              id="count-rekap-flank"
-            >
-              0
-            </h3>
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Flank Hadir</p>
+            <h3 class="text-3xl font-extrabold text-amber-400 mt-2" id="count-rekap-flank">0</h3>
           </div>
-          <div
-            class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl"
-          >
-            <p
-              class="text-xs text-slate-400 uppercase font-bold tracking-wider"
-            >
-              Pivot Hadir
-            </p>
-            <h3
-              class="text-3xl font-extrabold text-purple-400 mt-2"
-              id="count-rekap-pivot"
-            >
-              0
-            </h3>
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Pivot Hadir</p>
+            <h3 class="text-3xl font-extrabold text-purple-400 mt-2" id="count-rekap-pivot">0</h3>
           </div>
         </div>
 
-        <div
-          class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6"
-        >
-          <div
-            class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-          >
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h2 class="text-lg font-bold text-slate-100">
-                Daftar Lengkap Peserta Hadir
-              </h2>
-              <p class="text-sm text-slate-400">
-                Pengelompokan seluruh peserta hadir berdasarkan posisi.
-              </p>
+              <h2 class="text-lg font-bold text-slate-100">Daftar Lengkap Peserta Hadir</h2>
+              <p class="text-sm text-slate-400">Pengelompokan seluruh peserta hadir berdasarkan posisi.</p>
             </div>
-            <button
-              onclick="exportRekapExcel()"
-              class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow"
-            >
-              Cetak / Export Excel (.xlsx)
-            </button>
+            <button id="btn-export-rekap" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow">Cetak / Export Excel (.xlsx)</button>
           </div>
 
           <div class="overflow-x-auto rounded-xl border border-slate-800">
             <table class="w-full text-left border-collapse text-sm">
-              <thead
-                class="bg-slate-950 text-slate-400 uppercase font-bold text-xs"
-              >
+              <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
                 <tr>
                   <th class="p-4 w-12 text-center">No</th>
                   <th class="p-4">Nama Peserta</th>
@@ -269,10 +147,7 @@
                   <th class="p-4">Klub</th>
                 </tr>
               </thead>
-              <tbody
-                id="rekap-table-body"
-                class="divide-y divide-slate-800"
-              ></tbody>
+              <tbody id="rekap-table-body" class="divide-y divide-slate-800"></tbody>
             </table>
           </div>
         </div>
@@ -280,197 +155,81 @@
 
       <!-- TAB 3: KELOLA TIM -->
       <section id="tab-teams" class="tab-content space-y-6">
-        <div
-          class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6"
-        >
-          <div
-            class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800"
-          >
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800">
             <div>
-              <h2 class="text-lg font-bold text-slate-100">
-                Manajemen Pembagian Tim Match
-              </h2>
-              <p class="text-sm text-slate-400 mt-1">
-                Atur rompi, nomor punggung, dan susunan tim secara real-time.
-              </p>
+              <h2 class="text-lg font-bold text-slate-100">Manajemen Pembagian Tim Match</h2>
+              <p class="text-sm text-slate-400 mt-1">Atur rompi, nomor punggung, dan susunan tim secara real-time.</p>
             </div>
             <div class="flex flex-wrap gap-2.5 items-center">
-              <button
-                onclick="toggleUnassignedDrawer()"
-                class="px-4 py-2.5 bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-300 rounded-xl text-sm font-semibold transition flex items-center gap-2"
-              >
+              <button id="btn-toggle-drawer" class="px-4 py-2.5 bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-300 rounded-xl text-sm font-semibold transition flex items-center gap-2">
                 <span>Sisa Pemain</span>
-                <span
-                  id="badge-unassigned-count"
-                  class="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-xs font-bold"
-                  >0</span
-                >
+                <span id="badge-unassigned-count" class="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-xs font-bold">0</span>
               </button>
-              <button
-                onclick="addNewManualTeam()"
-                class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-sm transition"
-              >
-                + Tambah Tim
-              </button>
-              <button
-                onclick="generateTeams()"
-                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow"
-              >
-                Acak Tim Seimbang
-              </button>
+              <button id="btn-add-team" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-sm transition">+ Tambah Tim</button>
+              <button id="btn-generate-teams" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow">Acak Tim Seimbang</button>
             </div>
           </div>
 
-          <div
-            id="teams-grid-container"
-            class="grid grid-cols-1 md:grid-cols-2 gap-6"
-          ></div>
+          <div id="teams-grid-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </div>
       </section>
 
       <!-- TAB 4: KANDIDAT -->
       <section id="tab-matchup" class="tab-content space-y-6">
-        <div
-          class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6"
-        >
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div class="flex justify-between items-center">
             <div>
-              <h2 class="text-lg font-bold text-slate-100">
-                Daftar Kandidat Terpilih
-              </h2>
-              <p class="text-sm text-slate-400">
-                Hasil evaluasi Pelatih (Pemain Lolos & Ditandai).
-              </p>
+              <h2 class="text-lg font-bold text-slate-100">Daftar Kandidat Terpilih</h2>
+              <p class="text-sm text-slate-400">Hasil evaluasi Pelatih (Pemain Lolos & Ditandai).</p>
             </div>
-            <button
-              onclick="exportStarredExcel()"
-              class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow"
-            >
-              Export Excel
-            </button>
+            <button id="btn-export-starred" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow">Export Excel</button>
           </div>
-          <div
-            class="border border-emerald-900/50 bg-emerald-950/10 rounded-2xl overflow-hidden shadow-lg"
-          >
-            <div
-              class="bg-emerald-950/60 px-5 py-3.5 font-bold text-xs text-emerald-400 uppercase border-b border-emerald-900/50"
-            >
-              Pemain Lolos (<span id="count-passed">0</span>)
-            </div>
-            <div
-              id="passed-list-container"
-              class="divide-y divide-slate-800/60 text-sm"
-            ></div>
+          <div class="border border-emerald-900/50 bg-emerald-950/10 rounded-2xl overflow-hidden shadow-lg">
+            <div class="bg-emerald-950/60 px-5 py-3.5 font-bold text-xs text-emerald-400 uppercase border-b border-emerald-900/50">Pemain Lolos (<span id="count-passed">0</span>)</div>
+            <div id="passed-list-container" class="divide-y divide-slate-800/60 text-sm"></div>
           </div>
-          <div
-            class="border border-amber-900/40 bg-amber-950/10 rounded-2xl overflow-hidden shadow-lg"
-          >
-            <div
-              class="bg-amber-950/50 px-5 py-3.5 font-bold text-xs text-amber-400 uppercase border-b border-amber-900/40"
-            >
-              Kandidat Ditandai (<span id="count-starred">0</span>)
-            </div>
-            <div
-              id="starred-list-container"
-              class="divide-y divide-slate-800/60 text-sm"
-            ></div>
+          <div class="border border-amber-900/40 bg-amber-950/10 rounded-2xl overflow-hidden shadow-lg">
+            <div class="bg-amber-950/50 px-5 py-3.5 font-bold text-xs text-amber-400 uppercase border-b border-amber-900/40">Kandidat Ditandai (<span id="count-starred">0</span>)</div>
+            <div id="starred-list-container" class="divide-y divide-slate-800/60 text-sm"></div>
           </div>
         </div>
       </section>
     </main>
 
     <!-- DRAWER SISA PEMAIN -->
-    <div
-      id="drawer-backdrop"
-      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 hidden"
-      onclick="toggleUnassignedDrawer()"
-    ></div>
-    <div
-      id="unassigned-drawer"
-      class="fixed top-0 right-0 h-full w-full max-w-md bg-slate-900 border-l border-slate-800 z-50 shadow-2xl flex flex-col transform translate-x-full"
-    >
-      <div
-        class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950"
-      >
-        <h3 class="font-bold text-base text-slate-100">
-          Daftar Sisa Pemain Hadir
-        </h3>
-        <button
-          onclick="toggleUnassignedDrawer()"
-          class="text-slate-400 hover:text-slate-200 font-bold text-xl"
-        >
-          &times;
-        </button>
+    <div id="drawer-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 hidden"></div>
+    <div id="unassigned-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-slate-900 border-l border-slate-800 z-50 shadow-2xl flex flex-col transform translate-x-full">
+      <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+        <h3 class="font-bold text-base text-slate-100">Daftar Sisa Pemain Hadir</h3>
+        <button id="btn-close-drawer" class="text-slate-400 hover:text-slate-200 font-bold text-xl">&times;</button>
       </div>
-      <div
-        id="unassigned-players-container"
-        class="flex-1 overflow-y-auto p-4 space-y-2"
-      ></div>
+      <div id="unassigned-players-container" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
     </div>
 
     <!-- MODAL TAMBAH PESERTA -->
-    <div
-      id="modal-add-participant"
-      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
-    >
-      <div
-        class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl"
-      >
-        <div
-          class="flex justify-between items-center border-b border-slate-800 pb-3"
-        >
-          <h3 class="font-bold text-base text-slate-100">
-            Tambah Peserta Baru
-          </h3>
-          <button
-            onclick="closeAddParticipantModal()"
-            class="text-slate-400 hover:text-slate-200 font-bold text-lg"
-          >
-            &times;
-          </button>
+    <div id="modal-add-participant" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 class="font-bold text-base text-slate-100">Tambah Peserta Baru</h3>
+          <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200 font-bold text-lg">&times;</button>
         </div>
         <div class="space-y-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1"
-              >Nama Lengkap</label
-            >
-            <input
-              type="text"
-              id="new-p-name"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
-              placeholder="Nama peserta..."
-            />
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Lengkap</label>
+            <input type="text" id="new-p-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" placeholder="Nama peserta..." />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1"
-              >Asal Sekolah</label
-            >
-            <input
-              type="text"
-              id="new-p-school"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
-              placeholder="Asal sekolah..."
-            />
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Asal Sekolah</label>
+            <input type="text" id="new-p-school" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" placeholder="Asal sekolah..." />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1"
-              >Nomor HP</label
-            >
-            <input
-              type="text"
-              id="new-p-phone"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
-              placeholder="08xxxxxxxxxx"
-            />
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Nomor HP</label>
+            <input type="text" id="new-p-phone" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" placeholder="08xxxxxxxxxx" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1"
-              >Posisi</label
-            >
-            <select
-              id="new-p-pos"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500"
-            >
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Posisi</label>
+            <select id="new-p-pos" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
               <option value="Flank">Flank</option>
               <option value="Anchor">Anchor</option>
               <option value="Pivot">Pivot</option>
@@ -479,156 +238,47 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button
-            onclick="closeAddParticipantModal()"
-            class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold"
-          >
-            Batal
-          </button>
-          <button
-            onclick="saveNewParticipant()"
-            class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-xl text-xs font-bold"
-          >
-            Simpan Peserta
-          </button>
+          <button id="btn-cancel-modal" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Batal</button>
+          <button id="btn-save-participant" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-xl text-xs font-bold">Simpan Peserta</button>
         </div>
-      </div>
-    </div>
-
-    <!-- MODAL PILIH PEMAIN UNTUK TIM -->
-    <div
-      id="modal-select-player"
-      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
-    >
-      <div
-        class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl"
-      >
-        <div class="flex justify-between items-center">
-          <h3 class="font-bold text-base text-slate-100">
-            Pilih Peserta Masuk Tim
-          </h3>
-          <button
-            onclick="closeModal()"
-            class="text-slate-400 hover:text-slate-200 font-bold text-lg"
-          >
-            &times;
-          </button>
-        </div>
-        <div
-          id="modal-player-list"
-          class="max-h-64 overflow-y-auto space-y-2 pr-1 text-sm"
-        ></div>
       </div>
     </div>
 
     <!-- MODAL PROFIL PEMAIN -->
-    <div
-      id="modal-player-profile"
-      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
-    >
-      <div
-        class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-5 shadow-2xl"
-      >
-        <div
-          class="flex justify-between items-center border-b border-slate-800 pb-3"
-        >
+    <div id="modal-player-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-5 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
           <h3 class="font-bold text-lg text-slate-100" id="profile-name">-</h3>
-          <button
-            onclick="closeProfileModal()"
-            class="text-slate-400 hover:text-slate-200 font-bold text-xl"
-          >
-            &times;
-          </button>
+          <button id="btn-close-profile" class="text-slate-400 hover:text-slate-200 font-bold text-xl">&times;</button>
         </div>
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1"
-              >Strongest Foot</label
-            >
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Strongest Foot</label>
             <div class="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onclick="setProfileFoot('Right')"
-                id="foot-btn-Right"
-                class="py-2.5 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400"
-              >
-                Right
-              </button>
-              <button
-                type="button"
-                onclick="setProfileFoot('Left')"
-                id="foot-btn-Left"
-                class="py-2.5 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400"
-              >
-                Left
-              </button>
+              <button type="button" id="foot-btn-Right" class="py-2.5 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400">Right</button>
+              <button type="button" id="foot-btn-Left" class="py-2.5 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400">Left</button>
             </div>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1"
-              >Asal Klub</label
-            >
-            <input
-              type="text"
-              id="profile-club-input"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
-            />
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Asal Klub</label>
+            <input type="text" id="profile-club-input" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1"
-              >Catatan Pelatih</label
-            >
-            <textarea
-              id="profile-notes-input"
-              rows="3"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
-            ></textarea>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Catatan Pelatih</label>
+            <textarea id="profile-notes-input" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"></textarea>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-2"
-              >Status Seleksi</label
-            >
+            <label class="block text-xs font-semibold text-slate-300 mb-2">Status Seleksi</label>
             <div class="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                id="btn-status-none"
-                onclick="setProfileStatus('NONE')"
-                class="py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400"
-              >
-                Belum
-              </button>
-              <button
-                type="button"
-                id="btn-status-starred"
-                onclick="setProfileStatus('STARRED')"
-                class="py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400"
-              >
-                Ditandai
-              </button>
-              <button
-                type="button"
-                id="btn-status-passed"
-                onclick="setProfileStatus('PASSED')"
-                class="py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400"
-              >
-                Lolos
-              </button>
+              <button type="button" id="btn-status-none" class="py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400">Belum</button>
+              <button type="button" id="btn-status-starred" class="py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400">Ditandai</button>
+              <button type="button" id="btn-status-passed" class="py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400">Lolos</button>
             </div>
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button
-            onclick="closeProfileModal()"
-            class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold"
-          >
-            Batal
-          </button>
-          <button
-            onclick="saveProfileChanges()"
-            class="px-5 py-2 bg-emerald-600 text-slate-950 rounded-xl text-xs font-bold"
-          >
-            Simpan
-          </button>
+          <button id="btn-cancel-profile" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Batal</button>
+          <button id="btn-save-profile" class="px-5 py-2 bg-emerald-600 text-slate-950 rounded-xl text-xs font-bold">Simpan</button>
         </div>
       </div>
     </div>
@@ -636,14 +286,8 @@
     <!-- FIREBASE SDK & APP LOGIC -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-      import {
-        getFirestore,
-        doc,
-        setDoc,
-        onSnapshot,
-      } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+      import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-      // Konfigurasi Firebase Anda
       const firebaseConfig = {
         apiKey: "AIzaSyDARoARtFkgQB-7J_mG_DDAcSIIwzVKaG8",
         authDomain: "seleksi-futsal.firebaseapp.com",
@@ -651,7 +295,7 @@
         storageBucket: "seleksi-futsal.firebasestorage.app",
         messagingSenderId: "135886803788",
         appId: "1:135886803788:web:fc201b65cc8d3b879ff5e9",
-        measurementId: "G-TFWX83H103",
+        measurementId: "G-TFWX83H103"
       };
 
       const app = initializeApp(firebaseConfig);
@@ -661,91 +305,53 @@
       window.docRefParticipants = doc(db, "futsal_data", "participants");
       window.docRefTeams = doc(db, "futsal_data", "teams");
 
-      // Realtime listener untuk Participants
       onSnapshot(window.docRefParticipants, (docSnap) => {
         if (docSnap.exists()) {
           window.participants = docSnap.data().list || [];
-          refreshAllViews();
-          updateSyncStatus("Live Cloud Active", "bg-emerald-500");
         } else {
-          // Data awal kosong jika belum ada
           window.participants = [];
-          refreshAllViews();
         }
+        refreshAllViews();
+        updateSyncStatus("Live Cloud Active", "bg-emerald-500");
+      }, (error) => {
+        console.error(error);
+        updateSyncStatus("Cloud Error", "bg-rose-500");
       });
 
-      // Realtime listener untuk Teams
       onSnapshot(window.docRefTeams, (docSnap) => {
         if (docSnap.exists()) {
           window.teams = docSnap.data().list || [];
-          renderTeams();
         } else {
           window.teams = [];
-          renderTeams();
         }
+        renderTeams();
       });
     </script>
 
     <script>
       window.participants = [];
       window.teams = [];
-      let activeModalTarget = null;
       let activeProfilePlayerId = null;
       let selectedProfileFoot = "Right";
       let selectedProfileStatus = "NONE";
 
       const VEST_COLORS = [
-        {
-          id: "red",
-          name: "Merah",
-          colorClass: "bg-red-500",
-          cardBg: "bg-red-950/20",
-          border: "border-red-600/80",
-          headerBg: "bg-red-600/30",
-          badge: "bg-red-500 text-slate-950",
-        },
-        {
-          id: "blue",
-          name: "Biru",
-          colorClass: "bg-blue-500",
-          cardBg: "bg-blue-950/20",
-          border: "border-blue-600/80",
-          headerBg: "bg-blue-600/30",
-          badge: "bg-blue-500 text-slate-950",
-        },
-        {
-          id: "green",
-          name: "Hijau",
-          colorClass: "bg-emerald-500",
-          cardBg: "bg-emerald-950/20",
-          border: "border-emerald-600/80",
-          headerBg: "bg-emerald-600/30",
-          badge: "bg-emerald-500 text-slate-950",
-        },
-        {
-          id: "yellow",
-          name: "Kuning",
-          colorClass: "bg-amber-400",
-          cardBg: "bg-amber-950/20",
-          border: "border-amber-500/80",
-          headerBg: "bg-amber-500/30",
-          badge: "bg-amber-400 text-slate-950",
-        },
+        { id: "red", name: "Merah", colorClass: "bg-red-500", cardBg: "bg-red-950/20", border: "border-red-600/80", headerBg: "bg-red-600/30", badge: "bg-red-500 text-slate-950" },
+        { id: "blue", name: "Biru", colorClass: "bg-blue-500", cardBg: "bg-blue-950/20", border: "border-blue-600/80", headerBg: "bg-blue-600/30", badge: "bg-blue-500 text-slate-950" },
+        { id: "green", name: "Hijau", colorClass: "bg-emerald-500", cardBg: "bg-emerald-950/20", border: "border-emerald-600/80", headerBg: "bg-emerald-600/30", badge: "bg-emerald-500 text-slate-950" },
+        { id: "yellow", name: "Kuning", colorClass: "bg-amber-400", cardBg: "bg-amber-950/20", border: "border-amber-500/80", headerBg: "bg-amber-500/30", badge: "bg-amber-400 text-slate-950" }
       ];
 
       function updateSyncStatus(text, dotColorClass) {
         const dot = document.getElementById("sync-status-dot");
         const txt = document.getElementById("sync-status-text");
-        if (dot)
-          dot.className = `w-2.5 h-2.5 rounded-full ${dotColorClass} animate-pulse`;
+        if (dot) dot.className = `w-2.5 h-2.5 rounded-full ${dotColorClass} animate-pulse`;
         if (txt) txt.innerText = text;
       }
 
       async function saveParticipantsToCloud() {
         if (window.docRefParticipants) {
-          await setDoc(window.docRefParticipants, {
-            list: window.participants,
-          });
+          await setDoc(window.docRefParticipants, { list: window.participants });
         }
       }
 
@@ -756,62 +362,43 @@
       }
 
       function switchTab(tabID) {
-        document
-          .querySelectorAll(".tab-content")
-          .forEach((el) => el.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach((el) => el.classList.remove("active"));
         document.querySelectorAll(".nav-btn").forEach((btn) => {
           btn.classList.remove("bg-emerald-600", "text-white", "shadow-md");
           btn.classList.add("bg-slate-800", "text-slate-300");
         });
         document.getElementById(`tab-${tabID}`).classList.add("active");
-        document
-          .querySelector(`[data-tab="${tabID}"]`)
-          .classList.add("bg-emerald-600", "text-white", "shadow-md");
+        document.getElementById(`btn-tab-${tabID}`).classList.add("bg-emerald-600", "text-white", "shadow-md");
       }
 
       function updateBadges() {
         const totalCount = window.participants.length;
-        const presentCount = window.participants.filter(
-          (p) => p.present,
-        ).length;
-        const candidateCount = window.participants.filter(
-          (p) => p.starred || p.passed,
-        ).length;
+        const presentCount = window.participants.filter((p) => p.present).length;
+        const candidateCount = window.participants.filter((p) => p.starred || p.passed).length;
 
         let assignedIds = new Set();
         window.teams.forEach((t) => {
-          t.players.forEach((p) => {
-            if (p && p.player) assignedIds.add(p.player.id);
-          });
-          if (t.gkPlayer && t.gkPlayer.player)
-            assignedIds.add(t.gkPlayer.player.id);
+          t.players.forEach((p) => { if (p && p.player) assignedIds.add(p.player.id); });
+          if (t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
         });
 
-        const unassignedCount = window.participants.filter(
-          (p) => p.present && !assignedIds.has(p.id),
-        ).length;
+        const unassignedCount = window.participants.filter((p) => p.present && !assignedIds.has(p.id)).length;
 
         document.getElementById("badge-hadir").innerText = presentCount;
         document.getElementById("badge-total").innerText = totalCount;
-        document.getElementById("count-starred-badge").innerText =
-          candidateCount;
-        document.getElementById("badge-unassigned-count").innerText =
-          unassignedCount;
+        document.getElementById("count-starred-badge").innerText = candidateCount;
+        document.getElementById("badge-unassigned-count").innerText = unassignedCount;
       }
 
       function renderPresensiTable() {
         const tbody = document.getElementById("presensi-table-body");
-        const search = (
-          document.getElementById("search-input")?.value || ""
-        ).toLowerCase();
+        const search = (document.getElementById("search-input")?.value || "").toLowerCase();
         const filterPos = document.getElementById("filter-posisi")?.value || "";
         if (!tbody) return;
 
         tbody.innerHTML = "";
         const filtered = window.participants.filter((p) => {
-          const matchSearch =
-            p.name.toLowerCase().includes(search) ||
-            p.school.toLowerCase().includes(search);
+          const matchSearch = p.name.toLowerCase().includes(search) || p.school.toLowerCase().includes(search);
           const matchPos = filterPos === "" || p.position === filterPos;
           return matchSearch && matchPos;
         });
@@ -820,134 +407,96 @@
           const tr = document.createElement("tr");
           tr.className = "hover:bg-slate-800/50 transition cursor-pointer";
           tr.innerHTML = `
-            <td class="p-4 font-semibold text-slate-100" onclick="openProfileModal('${p.id}')">${p.name}</td>
-            <td class="p-4 text-slate-300" onclick="openProfileModal('${p.id}')">${p.school}</td>
-            <td class="p-4 text-slate-400" onclick="openProfileModal('${p.id}')">${p.phone}</td>
-            <td class="p-4 text-center" onclick="openProfileModal('${p.id}')"><span class="px-2 py-1 rounded bg-slate-800 text-xs font-bold">${p.position}</span></td>
+            <td class="p-4 font-semibold text-slate-100 name-click">${p.name}</td>
+            <td class="p-4 text-slate-300 name-click">${p.school}</td>
+            <td class="p-4 text-slate-400 name-click">${p.phone}</td>
+            <td class="p-4 text-center name-click"><span class="px-2 py-1 rounded bg-slate-800 text-xs font-bold">${p.position}</span></td>
             <td class="p-4 text-center">
               <div class="inline-flex rounded bg-slate-950 p-1 border border-slate-800 text-xs">
-                <button onclick="updatePlayerFoot('${p.id}', 'Right')" class="px-2.5 py-0.5 rounded ${p.foot === "Right" ? "bg-emerald-600 text-slate-950 font-bold" : "text-slate-400"}">Right</button>
-                <button onclick="updatePlayerFoot('${p.id}', 'Left')" class="px-2.5 py-0.5 rounded ${p.foot === "Left" ? "bg-emerald-600 text-slate-950 font-bold" : "text-slate-400"}">Left</button>
+                <button type="button" class="px-2.5 py-0.5 rounded foot-right ${p.foot === 'Right' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400'}">Right</button>
+                <button type="button" class="px-2.5 py-0.5 rounded foot-left ${p.foot === 'Left' ? 'bg-emerald-600 text-slate-950 font-bold' : 'text-slate-400'}">Left</button>
               </div>
             </td>
-            <td class="p-4"><input type="text" value="${p.club || ""}" onchange="updatePlayerClub('${p.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 w-28"></td>
-            <td class="p-4 text-right"><input type="checkbox" ${p.present ? "checked" : ""} onchange="togglePresence('${p.id}')" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer"></td>
+            <td class="p-4"><input type="text" value="${p.club || ''}" class="club-input bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 w-28"></td>
+            <td class="p-4 text-right"><input type="checkbox" ${p.present ? 'checked' : ''} class="presensi-checkbox w-5 h-5 accent-emerald-500 rounded cursor-pointer"></td>
           `;
+
+          tr.querySelectorAll('.name-click').forEach(el => el.onclick = () => openProfileModal(p.id));
+          tr.querySelector('.foot-right').onclick = (e) => { e.stopPropagation(); updatePlayerFoot(p.id, 'Right'); };
+          tr.querySelector('.foot-left').onclick = (e) => { e.stopPropagation(); updatePlayerFoot(p.id, 'Left'); };
+          tr.querySelector('.club-input').onchange = (e) => updatePlayerClub(p.id, e.target.value);
+          tr.querySelector('.presensi-checkbox').onchange = () => togglePresence(p.id);
+
           tbody.appendChild(tr);
         });
       }
 
       function updatePlayerFoot(id, foot) {
-        const p = window.participants.find((x) => x.id === id);
-        if (p) {
-          p.foot = foot;
-          saveParticipantsToCloud();
-          renderPresensiTable();
-        }
+        const p = window.participants.find(x => x.id === id);
+        if (p) { p.foot = foot; saveParticipantsToCloud(); renderPresensiTable(); }
       }
 
       function updatePlayerClub(id, club) {
-        const p = window.participants.find((x) => x.id === id);
-        if (p) {
-          p.club = club;
-          saveParticipantsToCloud();
-        }
+        const p = window.participants.find(x => x.id === id);
+        if (p) { p.club = club; saveParticipantsToCloud(); }
       }
 
       function togglePresence(id) {
-        const p = window.participants.find((x) => x.id === id);
-        if (p) {
-          p.present = !p.present;
-          saveParticipantsToCloud();
-          renderPresensiTable();
-        }
+        const p = window.participants.find(x => x.id === id);
+        if (p) { p.present = !p.present; saveParticipantsToCloud(); renderPresensiTable(); }
       }
 
       function renderRekap() {
-        const gkHadir = window.participants.filter(
-          (p) => p.present && p.position === "GK",
-        );
-        const anchors = window.participants.filter(
-          (p) => p.present && p.position === "Anchor",
-        );
-        const flanks = window.participants.filter(
-          (p) => p.present && p.position === "Flank",
-        );
-        const pivots = window.participants.filter(
-          (p) => p.present && p.position === "Pivot",
-        );
+        const gkHadir = window.participants.filter(p => p.present && p.position === "GK");
+        const anchors = window.participants.filter(p => p.present && p.position === "Anchor");
+        const flanks = window.participants.filter(p => p.present && p.position === "Flank");
+        const pivots = window.participants.filter(p => p.present && p.position === "Pivot");
 
         document.getElementById("count-rekap-gk").innerText = gkHadir.length;
-        document.getElementById("count-rekap-anchor").innerText =
-          anchors.length;
+        document.getElementById("count-rekap-anchor").innerText = anchors.length;
         document.getElementById("count-rekap-flank").innerText = flanks.length;
         document.getElementById("count-rekap-pivot").innerText = pivots.length;
 
         const tbody = document.getElementById("rekap-table-body");
         tbody.innerHTML = "";
-        window.participants
-          .filter((p) => p.present)
-          .forEach((p, idx) => {
-            tbody.innerHTML += `
+        window.participants.filter(p => p.present).forEach((p, idx) => {
+          tbody.innerHTML += `
             <tr class="hover:bg-slate-800/50">
               <td class="p-4 text-center text-slate-500">${idx + 1}</td>
               <td class="p-4 font-semibold">${p.name}</td>
               <td class="p-4 text-slate-300">${p.school}</td>
               <td class="p-4 text-slate-400">${p.phone}</td>
               <td class="p-4 text-center"><span class="px-2 py-0.5 rounded bg-slate-800 text-xs">${p.position}</span></td>
-              <td class="p-4 text-center">${p.foot || "Right"}</td>
-              <td class="p-4 text-slate-400">${p.club || "-"}</td>
+              <td class="p-4 text-center">${p.foot || 'Right'}</td>
+              <td class="p-4 text-slate-400">${p.club || '-'}</td>
             </tr>`;
-          });
+        });
       }
 
       function generateTeams() {
-        const present = window.participants.filter((p) => p.present);
-        const gk = shuffle([...present.filter((p) => p.position === "GK")]);
-        const anchors = shuffle([
-          ...present.filter((p) => p.position === "Anchor"),
-        ]);
-        const flanks = shuffle([
-          ...present.filter((p) => p.position === "Flank"),
-        ]);
-        const pivots = shuffle([
-          ...present.filter((p) => p.position === "Pivot"),
-        ]);
+        const present = window.participants.filter(p => p.present);
+        const gk = shuffle([...present.filter(p => p.position === "GK")]);
+        const anchors = shuffle([...present.filter(p => p.position === "Anchor")]);
+        const flanks = shuffle([...present.filter(p => p.position === "Flank")]);
+        const pivots = shuffle([...present.filter(p => p.position === "Pivot")]);
 
-        let numTeams =
-          Math.ceil((anchors.length + flanks.length + pivots.length) / 4) || 1;
+        let numTeams = Math.ceil((anchors.length + flanks.length + pivots.length) / 4) || 1;
         if (numTeams % 2 !== 0 && numTeams > 1) numTeams++;
 
         let newTeams = [];
         for (let i = 0; i < numTeams; i++) {
-          newTeams.push({
-            name: `Tim ${i + 1}`,
-            vestColorId: VEST_COLORS[i % VEST_COLORS.length].id,
-            players: [null, null, null, null],
-            gkPlayer: null,
-          });
+          newTeams.push({ name: `Tim ${i + 1}`, vestColorId: VEST_COLORS[i % VEST_COLORS.length].id, players: [null, null, null, null], gkPlayer: null });
         }
 
         let tIdx = 0;
-        while (gk.length > 0) {
-          newTeams[tIdx % numTeams].gkPlayer = {
-            player: gk.shift(),
-            vestNum: "",
-          };
-          tIdx++;
-        }
+        while (gk.length > 0) { newTeams[tIdx % numTeams].gkPlayer = { player: gk.shift(), vestNum: "" }; tIdx++; }
 
         let pool = [...anchors, ...pivots, ...flanks];
         tIdx = 0;
         while (pool.length > 0) {
-          let emptySlot = newTeams[tIdx % numTeams].players.findIndex(
-            (s) => s === null,
-          );
+          let emptySlot = newTeams[tIdx % numTeams].players.findIndex(s => s === null);
           if (emptySlot !== -1) {
-            newTeams[tIdx % numTeams].players[emptySlot] = {
-              player: pool.shift(),
-              vestNum: "",
-            };
+            newTeams[tIdx % numTeams].players[emptySlot] = { player: pool.shift(), vestNum: "" };
           }
           tIdx++;
         }
@@ -957,9 +506,7 @@
         renderTeams();
       }
 
-      function shuffle(arr) {
-        return arr.sort(() => Math.random() - 0.5);
-      }
+      function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
 
       function renderTeams() {
         const container = document.getElementById("teams-grid-container");
@@ -973,107 +520,175 @@
         }
 
         window.teams.forEach((t, tIdx) => {
-          let vObj =
-            VEST_COLORS.find((v) => v.id === t.vestColorId) || VEST_COLORS[0];
-          let gkHTML = t.gkPlayer
-            ? `<div class="bg-slate-950 p-2 rounded flex justify-between items-center text-xs"><span>GK: ${t.gkPlayer.player.name}</span> <button onclick="removeGk(${tIdx})" class="text-rose-400">Hapus</button></div>`
-            : `<button onclick="openPlayerSelector(${tIdx}, null, true)" class="w-full py-1 bg-slate-800 text-xs rounded">+ Isi GK</button>`;
+          let vObj = VEST_COLORS.find(v => v.id === t.vestColorId) || VEST_COLORS[0];
+          let gkHTML = t.gkPlayer ? `<div class="bg-slate-950 p-2 rounded flex justify-between items-center text-xs"><span>GK: ${t.gkPlayer.player.name}</span> <button type="button" class="remove-gk text-rose-400">Hapus</button></div>` : `<button type="button" class="add-gk w-full py-1 bg-slate-800 text-xs rounded">+ Isi GK</button>`;
 
           let playersHTML = "";
           t.players.forEach((slot, pIdx) => {
             if (slot && slot.player) {
-              playersHTML += `<div class="bg-slate-950 p-2 rounded flex justify-between items-center text-xs"><span>${slot.player.name} (${slot.player.position})</span> <button onclick="removePlayer(${tIdx}, ${pIdx})" class="text-rose-400">Hapus</button></div>`;
+              playersHTML += `<div class="bg-slate-950 p-2 rounded flex justify-between items-center text-xs"><span>${slot.player.name} (${slot.player.position})</span> <button type="button" class="remove-player text-rose-400" data-pidx="${pIdx}">Hapus</button></div>`;
             } else {
-              playersHTML += `<button onclick="openPlayerSelector(${tIdx}, ${pIdx}, false)" class="w-full py-1 bg-slate-900 border border-slate-800 text-xs rounded text-slate-400">+ Isi Pemain</button>`;
+              playersHTML += `<button type="button" class="add-player w-full py-1 bg-slate-900 border border-slate-800 text-xs rounded text-slate-400" data-pidx="${pIdx}">+ Isi Pemain</button>`;
             }
           });
 
-          container.innerHTML += `
-            <div class="${vObj.cardBg} border ${vObj.border} rounded-xl p-4 space-y-3">
-              <div class="flex justify-between items-center"><input type="text" value="${t.name}" onchange="renameTeam(${tIdx}, this.value)" class="bg-transparent font-bold text-sm text-slate-100 w-32"><span class="text-xs px-2 py-0.5 rounded ${vObj.badge}">Rompi ${vObj.name}</span></div>
-              <div class="space-y-1"><p class="text-[10px] text-slate-500 font-bold uppercase">Kiper</p>${gkHTML}</div>
-              <div class="space-y-1"><p class="text-[10px] text-slate-500 font-bold uppercase">Pemain Lapangan</p>${playersHTML}</div>
-            </div>`;
+          const card = document.createElement("div");
+          card.className = `${vObj.cardBg} border ${vObj.border} rounded-xl p-4 space-y-3`;
+          card.innerHTML = `
+            <div class="flex justify-between items-center"><input type="text" value="${t.name}" class="team-name-input bg-transparent font-bold text-sm text-slate-100 w-32"><span class="text-xs px-2 py-0.5 rounded ${vObj.badge}">Rompi ${vObj.name}</span></div>
+            <div class="space-y-1"><p class="text-[10px] text-slate-500 font-bold uppercase">Kiper</p><div class="gk-slot-container"></div></div>
+            <div class="space-y-1"><p class="text-[10px] text-slate-500 font-bold uppercase">Pemain Lapangan</p><div class="players-slot-container space-y-1"></div></div>
+          `;
+
+          card.querySelector('.team-name-input').onchange = (e) => { window.teams[tIdx].name = e.target.value; saveTeamsToCloud(); };
+          
+          const gkContainer = card.querySelector('.gk-slot-container');
+          gkContainer.innerHTML = gkHTML;
+          if (t.gkPlayer) {
+            gkContainer.querySelector('.remove-gk').onclick = () => removeGk(tIdx);
+          }
+
+          const playersContainer = card.querySelector('.players-slot-container');
+          playersContainer.innerHTML = playersHTML;
+          playersContainer.querySelectorAll('.remove-player').forEach(btn => {
+            const pIdx = parseInt(btn.getAttribute('data-pidx'));
+            btn.onclick = () => removePlayer(tIdx, pIdx);
+          });
+
+          container.appendChild(card);
         });
       }
 
-      function renameTeam(tIdx, name) {
-        window.teams[tIdx].name = name;
-        saveTeamsToCloud();
-      }
-      function removeGk(t) {
-        window.teams[t].gkPlayer = null;
-        saveTeamsToCloud();
-        renderTeams();
-      }
-      function removePlayer(t, p) {
-        window.teams[t].players[p] = null;
-        saveTeamsToCloud();
-        renderTeams();
-      }
+      function removeGk(t) { window.teams[t].gkPlayer = null; saveTeamsToCloud(); renderTeams(); }
+      function removePlayer(t, p) { window.teams[t].players[p] = null; saveTeamsToCloud(); renderTeams(); }
 
-      function openAddParticipantModal() {
-        document
-          .getElementById("modal-add-participant")
-          .classList.remove("hidden");
-      }
-      function closeAddParticipantModal() {
-        document
-          .getElementById("modal-add-participant")
-          .classList.add("hidden");
-      }
+      const modalAdd = document.getElementById("modal-add-participant");
+
+      function openAddParticipantModal() { modalAdd.classList.remove("hidden"); }
+      function closeAddParticipantModal() { modalAdd.classList.add("hidden"); }
 
       async function saveNewParticipant() {
-        const name = document.getElementById("new-p-name").value.trim();
-        const school = document.getElementById("new-p-school").value.trim();
-        const phone = document.getElementById("new-p-phone").value.trim();
-        const position = document.getElementById("new-p-pos").value;
-        if (!name) return alert("Nama wajib diisi!");
+        const nameInput = document.getElementById("new-p-name");
+        const schoolInput = document.getElementById("new-p-school");
+        const phoneInput = document.getElementById("new-p-phone");
+        const posInput = document.getElementById("new-p-pos");
 
-        window.participants.push({
-          id: "p_" + Date.now(),
-          name,
-          school,
-          phone,
-          position,
-          present: true,
-          foot: "Right",
-          club: "",
-          starred: false,
-          passed: false,
-          notes: "",
+        const name = nameInput.value.trim();
+        const school = schoolInput.value.trim() || "-";
+        const phone = phoneInput.value.trim() || "-";
+        const position = posInput.value;
+
+        if (!name) {
+          alert("Nama peserta wajib diisi!");
+          return;
+        }
+
+        window.participants.push({ 
+          id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), 
+          name, 
+          school, 
+          phone, 
+          position, 
+          present: false, 
+          foot: 'Right', 
+          club: '', 
+          starred: false, 
+          passed: false, 
+          notes: '' 
         });
+
         await saveParticipantsToCloud();
+
+        nameInput.value = "";
+        schoolInput.value = "";
+        phoneInput.value = "";
         closeAddParticipantModal();
         renderPresensiTable();
       }
 
+      // FUNGSI IMPORT EXCEL AMAN DARI ERROR FORMAT
+      document.getElementById("excel-file-input").addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            let importedCount = 0;
+            for (let i = 1; i < json.length; i++) {
+              let row = json[i];
+              if (!row || row.length === 0) continue;
+
+              let name = row[1] ? String(row[1]).trim() : "";
+              if (!name) continue;
+
+              let school = row[3] ? String(row[3]).trim() : "-";
+              let phone = row[4] ? String(row[4]).trim() : "-";
+              let rawPos = row[5] ? String(row[5]).trim().toUpperCase() : "FLANK";
+
+              let position = "Flank";
+              if (rawPos.includes("GK") || rawPos.includes("KIPER")) position = "GK";
+              else if (rawPos.includes("ANCHOR")) position = "Anchor";
+              else if (rawPos.includes("PIVOT")) position = "Pivot";
+
+              window.participants.push({
+                id: 'p_imp_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 3),
+                name: name,
+                school: school,
+                phone: phone,
+                position: position,
+                present: false,
+                foot: 'Right',
+                club: '',
+                starred: false,
+                passed: false,
+                notes: ''
+              });
+              importedCount++;
+            }
+
+            if (importedCount > 0) {
+              await saveParticipantsToCloud();
+              alert(`Berhasil mengimpor ${importedCount} peserta ke Cloud Firestore!`);
+              document.getElementById("excel-file-input").value = "";
+            } else {
+              alert("Tidak ada data valid yang ditemukan.");
+            }
+          } catch (err) {
+            console.error(err);
+            alert("Terjadi kesalahan saat membaca file Excel.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
       function toggleUnassignedDrawer() {
         const drawer = document.getElementById("unassigned-drawer");
+        const backdrop = document.getElementById("drawer-backdrop");
         drawer.classList.toggle("translate-x-full");
+        backdrop.classList.toggle("hidden");
+        
         if (!drawer.classList.contains("translate-x-full")) {
-          const container = document.getElementById(
-            "unassigned-players-container",
-          );
+          const container = document.getElementById("unassigned-players-container");
           container.innerHTML = "";
           let assignedIds = new Set();
-          window.teams.forEach((t) => {
-            t.players.forEach((s) => {
-              if (s && s.player) assignedIds.add(s.player.id);
-            });
-            if (t.gkPlayer && t.gkPlayer.player)
-              assignedIds.add(t.gkPlayer.player.id);
+          window.teams.forEach(t => {
+            t.players.forEach(s => { if (s && s.player) assignedIds.add(s.player.id); });
+            if (t.gkPlayer && t.gkPlayer.player) assignedIds.add(t.gkPlayer.player.id);
           });
-          window.participants
-            .filter((p) => p.present && !assignedIds.has(p.id))
-            .forEach((p) => {
-              container.innerHTML += `<div class="p-3 bg-slate-950 rounded border border-slate-800 text-xs flex justify-between items-center"><span>${p.name} (${p.position})</span></div>`;
-            });
+          window.participants.filter(p => p.present && !assignedIds.has(p.id)).forEach(p => {
+            container.innerHTML += `<div class="p-3 bg-slate-950 rounded border border-slate-800 text-xs flex justify-between items-center"><span>${p.name} (${p.position})</span></div>`;
+          });
         }
       }
 
       function openProfileModal(id) {
-        const p = window.participants.find((x) => x.id === id);
+        const p = window.participants.find(x => x.id === id);
         if (!p) return;
         activeProfilePlayerId = id;
         document.getElementById("profile-name").innerText = p.name;
@@ -1081,25 +696,31 @@
         document.getElementById("profile-notes-input").value = p.notes || "";
         setProfileFoot(p.foot || "Right");
         setProfileStatus(p.passed ? "PASSED" : p.starred ? "STARRED" : "NONE");
-        document
-          .getElementById("modal-player-profile")
-          .classList.remove("hidden");
+        document.getElementById("modal-player-profile").classList.remove("hidden");
       }
 
       function setProfileFoot(f) {
         selectedProfileFoot = f;
-      }
-      function setProfileStatus(s) {
-        selectedProfileStatus = s;
-      }
-      function closeProfileModal() {
-        document.getElementById("modal-player-profile").classList.add("hidden");
+        document.getElementById("foot-btn-Right").className = `py-2.5 rounded-xl text-xs font-bold border border-slate-800 ${f === 'Right' ? 'bg-emerald-600 text-slate-950 font-bold' : 'bg-slate-950 text-slate-400'}`;
+        document.getElementById("foot-btn-Left").className = `py-2.5 rounded-xl text-xs font-bold border border-slate-800 ${f === 'Left' ? 'bg-emerald-600 text-slate-950 font-bold' : 'bg-slate-950 text-slate-400'}`;
       }
 
+      function setProfileStatus(s) {
+        selectedProfileStatus = s;
+        ['none', 'starred', 'passed'].forEach(st => {
+          const btn = document.getElementById(`btn-status-${st}`);
+          if(st.toUpperCase() === s || (st === 'none' && s === 'NONE')) {
+            btn.className = "py-2 rounded-xl text-xs font-bold border border-emerald-500 bg-emerald-600 text-slate-950";
+          } else {
+            btn.className = "py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-950 text-slate-400";
+          }
+        });
+      }
+
+      function closeProfileModal() { document.getElementById("modal-player-profile").classList.add("hidden"); }
+
       async function saveProfileChanges() {
-        const p = window.participants.find(
-          (x) => x.id === activeProfilePlayerId,
-        );
+        const p = window.participants.find(x => x.id === activeProfilePlayerId);
         if (p) {
           p.foot = selectedProfileFoot;
           p.club = document.getElementById("profile-club-input").value;
@@ -1109,50 +730,29 @@
           await saveParticipantsToCloud();
           closeProfileModal();
           renderPresensiTable();
+          renderStarredList();
         }
       }
 
       function renderStarredList() {
-        const passed = window.participants.filter((p) => p.passed);
-        const starred = window.participants.filter(
-          (p) => p.starred && !p.passed,
-        );
+        const passed = window.participants.filter(p => p.passed);
+        const starred = window.participants.filter(p => p.starred && !p.passed);
         document.getElementById("count-passed").innerText = passed.length;
         document.getElementById("count-starred").innerText = starred.length;
-
-        document.getElementById("passed-list-container").innerHTML =
-          passed.length
-            ? passed
-                .map(
-                  (p) =>
-                    `<div class="p-3 text-xs">${p.name} - ${p.school}</div>`,
-                )
-                .join("")
-            : '<div class="p-4 text-slate-500 text-xs">Kosong</div>';
-        document.getElementById("starred-list-container").innerHTML =
-          starred.length
-            ? starred
-                .map(
-                  (p) =>
-                    `<div class="p-3 text-xs">${p.name} - ${p.school}</div>`,
-                )
-                .join("")
-            : '<div class="p-4 text-slate-500 text-xs">Kosong</div>';
+        
+        document.getElementById("passed-list-container").innerHTML = passed.length ? passed.map(p => `<div class="p-3 text-xs">${p.name} - ${p.school} (${p.position})</div>`).join('') : '<div class="p-4 text-slate-500 text-xs">Kosong</div>';
+        document.getElementById("starred-list-container").innerHTML = starred.length ? starred.map(p => `<div class="p-3 text-xs">${p.name} - ${p.school} (${p.position})</div>`).join('') : '<div class="p-4 text-slate-500 text-xs">Kosong</div>';
       }
 
       function exportRekapExcel() {
-        const worksheet = XLSX.utils.json_to_sheet(
-          window.participants.filter((p) => p.present),
-        );
+        const worksheet = XLSX.utils.json_to_sheet(window.participants.filter(p => p.present));
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap");
         XLSX.writeFile(workbook, "Rekap_Peserta.xlsx");
       }
 
       function exportStarredExcel() {
-        const worksheet = XLSX.utils.json_to_sheet(
-          window.participants.filter((p) => p.starred || p.passed),
-        );
+        const worksheet = XLSX.utils.json_to_sheet(window.participants.filter(p => p.starred || p.passed));
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Kandidat");
         XLSX.writeFile(workbook, "Hasil_Seleksi.xlsx");
@@ -1165,6 +765,47 @@
         renderStarredList();
         updateBadges();
       }
+
+      // Event Binding Tombol Navigasi Tab
+      document.getElementById("btn-tab-presensi").onclick = () => switchTab('presensi');
+      document.getElementById("btn-tab-rekap").onclick = () => switchTab('rekap');
+      document.getElementById("btn-tab-teams").onclick = () => switchTab('teams');
+      document.getElementById("btn-tab-matchup").onclick = () => switchTab('matchup');
+
+      // Event Binding Modal Tambah Peserta
+      document.getElementById("btn-open-modal").onclick = openAddParticipantModal;
+      document.getElementById("btn-close-modal").onclick = closeAddParticipantModal;
+      document.getElementById("btn-cancel-modal").onclick = closeAddParticipantModal;
+      document.getElementById("btn-save-participant").onclick = saveNewParticipant;
+
+      // Event Binding Drawer & Teams
+      document.getElementById("btn-toggle-drawer").onclick = toggleUnassignedDrawer;
+      document.getElementById("btn-close-drawer").onclick = toggleUnassignedDrawer;
+      document.getElementById("drawer-backdrop").onclick = toggleUnassignedDrawer;
+
+      document.getElementById("btn-add-team").onclick = () => {
+        window.teams.push({ name: `Tim ${window.teams.length + 1}`, vestColorId: VEST_COLORS[window.teams.length % VEST_COLORS.length].id, players: [null, null, null, null], gkPlayer: null });
+        saveTeamsToCloud();
+        renderTeams();
+      };
+      document.getElementById("btn-generate-teams").onclick = generateTeams;
+
+      document.getElementById("btn-export-rekap").onclick = exportRekapExcel;
+      document.getElementById("btn-export-starred").onclick = exportStarredExcel;
+
+      document.getElementById("btn-close-profile").onclick = closeProfileModal;
+      document.getElementById("btn-cancel-profile").onclick = closeProfileModal;
+      document.getElementById("btn-save-profile").onclick = saveProfileChanges;
+
+      document.getElementById("foot-btn-Right").onclick = () => setProfileFoot("Right");
+      document.getElementById("foot-btn-Left").onclick = () => setProfileFoot("Left");
+
+      document.getElementById("btn-status-none").onclick = () => setProfileStatus("NONE");
+      document.getElementById("btn-status-starred").onclick = () => setProfileStatus("STARRED");
+      document.getElementById("btn-status-passed").onclick = () => setProfileStatus("PASSED");
+
+      document.getElementById("search-input").oninput = renderPresensiTable;
+      document.getElementById("filter-posisi").onchange = renderPresensiTable;
     </script>
   </body>
 </html>
