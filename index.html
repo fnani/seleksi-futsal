@@ -6,7 +6,7 @@
     <title>Sistem Seleksi Futsal - Tim Futsal Ponprov Kab. Kediri</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS (xlsx) untuk export/import ke Excel -->
+    <!-- SheetJS (xlsx) untuk import Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
       .tab-content { display: none; }
@@ -351,7 +351,6 @@
 
       async function saveParticipantsToCloud() {
         if (window.docRefParticipants) {
-          // Sanitasi objek sebelum dikirim ke Firebase (Mencegah undefined)
           const cleanList = JSON.parse(JSON.stringify(window.participants));
           await setDoc(window.docRefParticipants, { list: cleanList });
         }
@@ -611,7 +610,7 @@
         renderPresensiTable();
       }
 
-      // FUNGSI IMPORT EXCEL SUPER SAFE (TOLERAN UNDEFINED & NULL)
+      // FUNGSI IMPORT EXCEL FLEKSIBEL BISA DIBACA OTOMATIS
       document.getElementById("excel-file-input").addEventListener("change", function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -620,53 +619,65 @@
           try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            if (json.length === 0) {
+              alert("File Excel kosong!");
+              return;
+            }
 
             let importedCount = 0;
-            for (let i = 1; i < json.length; i++) {
-              let row = json[i];
-              if (!row || !Array.isArray(row) || row.length === 0) continue;
-
-              let name = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : "";
-              if (!name) continue;
-
-              let school = row[3] !== undefined && row[3] !== null ? String(row[3]).trim() : "-";
-              let phone = row[4] !== undefined && row[4] !== null ? String(row[4]).trim() : "-";
-              let rawPos = row[5] !== undefined && row[5] !== null ? String(row[5]).trim().toUpperCase() : "FLANK";
-
+            json.forEach((row, i) => {
+              // Cari nama dari properti manapun yang mengandung kata 'NAMA'
+              let name = "";
+              let school = "-";
+              let phone = "-";
               let position = "Flank";
-              if (rawPos.includes("GK") || rawPos.includes("KIPER")) position = "GK";
-              else if (rawPos.includes("ANCHOR")) position = "Anchor";
-              else if (rawPos.includes("PIVOT")) position = "Pivot";
 
-              window.participants.push({
-                id: 'p_imp_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 3),
-                name: name,
-                school: school || "-",
-                phone: phone || "-",
-                position: position,
-                present: false,
-                foot: 'Right',
-                club: '',
-                starred: false,
-                passed: false,
-                notes: ''
+              Object.keys(row).forEach(key => {
+                const k = key.toUpperCase();
+                const val = String(row[key] || "").trim();
+                if (k.includes("NAMA")) name = val;
+                if (k.includes("SEKOLAH")) school = val;
+                if (k.includes("HP") || k.includes("WA") || k.includes("PHONE") || k.includes("NOMOR")) phone = val;
+                if (k.includes("POSISI")) {
+                  const pUpper = val.toUpperCase();
+                  if (pUpper.includes("GK") || pUpper.includes("KIPER")) position = "GK";
+                  else if (pUpper.includes("ANCHOR")) position = "Anchor";
+                  else if (pUpper.includes("PIVOT")) position = "Pivot";
+                  else position = "Flank";
+                }
               });
-              importedCount++;
-            }
+
+              if (name) {
+                window.participants.push({
+                  id: 'p_imp_' + Date.now() + '_' + i,
+                  name: name,
+                  school: school || "-",
+                  phone: phone || "-",
+                  position: position,
+                  present: false,
+                  foot: 'Right',
+                  club: '',
+                  starred: false,
+                  passed: false,
+                  notes: ''
+                });
+                importedCount++;
+              }
+            });
 
             if (importedCount > 0) {
               await saveParticipantsToCloud();
-              alert(`Berhasil mengimpor ${importedCount} peserta ke Cloud Firestore!`);
+              alert(`BERHASIL! ${importedCount} peserta telah diimpor ke Cloud Firestore!`);
               document.getElementById("excel-file-input").value = "";
             } else {
-              alert("Tidak ada data valid yang ditemukan.");
+              alert("Gagal membaca nama peserta dari Excel.");
             }
           } catch (err) {
-            console.error("Excel Read Error:", err);
-            alert("Terjadi kesalahan saat membaca file Excel.");
+            console.error(err);
+            alert("Error membaca file Excel.");
           }
         };
         reader.readAsArrayBuffer(file);
@@ -773,19 +784,17 @@
         updateBadges();
       }
 
-      // Event Binding Tombol Navigasi Tab
+      // Event Binding
       document.getElementById("btn-tab-presensi").onclick = () => switchTab('presensi');
       document.getElementById("btn-tab-rekap").onclick = () => switchTab('rekap');
       document.getElementById("btn-tab-teams").onclick = () => switchTab('teams');
       document.getElementById("btn-tab-matchup").onclick = () => switchTab('matchup');
 
-      // Event Binding Modal Tambah Peserta
       document.getElementById("btn-open-modal").onclick = openAddParticipantModal;
       document.getElementById("btn-close-modal").onclick = closeAddParticipantModal;
       document.getElementById("btn-cancel-modal").onclick = closeAddParticipantModal;
       document.getElementById("btn-save-participant").onclick = saveNewParticipant;
 
-      // Event Binding Drawer & Teams
       document.getElementById("btn-toggle-drawer").onclick = toggleUnassignedDrawer;
       document.getElementById("btn-close-drawer").onclick = toggleUnassignedDrawer;
       document.getElementById("drawer-backdrop").onclick = toggleUnassignedDrawer;
