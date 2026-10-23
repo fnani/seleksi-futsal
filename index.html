@@ -250,7 +250,6 @@
         modal.classList.add("hidden");
       };
 
-      // FUNGSI SUNTIK DATA 254 EXCEL LANGSUNG DARI JAVASCRIPT
       // FUNGSI SUNTIK SEMUA 254 DATA EXCEL KE FIREBASE
       document.getElementById("btn-inject-data").onclick = async () => {
         if (!confirm("Apakah Anda yakin ingin memasukkan SEMUA 254 data peserta ke Firebase?")) return;
@@ -514,12 +513,6 @@
 
         await setDoc(docRef, { list: fullExcelData });
         alert("✅ BERHASIL! SEMUA 254 data peserta telah masuk ke Firebase!");
-      };
-        } catch (e) {}
-
-        // Fallback jika tidak ada file JSON terpisah
-        await setDoc(docRef, { list: excelData });
-        alert("✅ Berhasil memasukkan data sampel ke Firebase!");
       };
     </script>
   </body>
