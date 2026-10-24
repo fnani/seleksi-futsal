@@ -691,11 +691,10 @@
             });
         }
 
-        // --- BACKUP TOTAL DENGAN ID UNIK (PESERTA & TIM) ---
+        // --- BACKUP TOTAL ---
         function exportFullBackupExcel() {
             let workbook = XLSX.utils.book_new();
 
-            // Sheet 1: Data Peserta (Disertai Kolom ID Unik agar duplikat nama terpisah)
             let presentList = participants.filter(p => p.present);
             presentList.sort((a, b) => {
                 let scoreA = a.passed ? 2 : (a.starred ? 1 : 0);
@@ -719,7 +718,6 @@
             const wsParticipants = XLSX.utils.json_to_sheet(pesertaData);
             XLSX.utils.book_append_sheet(workbook, wsParticipants, "Data Peserta");
 
-            // Sheet 2: Data Tim (Disertai ID Pemain)
             let teamExportData = [];
             teams.forEach((team, tIdx) => {
                 let vObj = VEST_COLORS.find(v => v.id === team.vestColorId) || VEST_COLORS[0];
@@ -767,7 +765,7 @@
             XLSX.writeFile(workbook, "Backup_Total_Seleksi_Futsal.xlsx");
         }
 
-        // --- RESTORE PERBAIKAN: DUKUNG DUPLIKAT TANPA TERTIMPA ---
+        // --- RESTORE TOTAL AMAN DARI TERPOTONG (ROBUST LOOP) ---
         function importFullBackupFromExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -781,23 +779,25 @@
                     let restoredParticipantsCount = 0;
                     let matchedParticipantIds = new Set();
 
-                    // 1. Restore Sheet Peserta (Membaca seluruh baris secara aman)
+                    // 1. Restore Sheet Peserta Tanpa Terpotong
                     if (workbook.Sheets["Data Peserta"]) {
                         const pesertaRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Peserta"], { defval: "" });
+                        
                         pesertaRows.forEach(row => {
                             const idInRow = String(row["ID"] || "").trim();
                             const nameInRow = String(row["Nama"] || "").trim();
                             
-                            if (!nameInRow) return; // Lewati baris kosong
+                            // Abaikan baris jika nama kosong total
+                            if (!nameInRow) return;
 
                             let targetPlayer = null;
 
-                            // Cari berdasarkan ID unik
+                            // Cocokkan ID Unik
                             if (idInRow) {
                                 targetPlayer = participants.find(x => String(x.id) === idInRow);
                             }
 
-                            // Jika tidak ketemu berdasarkan ID, cari berdasarkan Nama yang belum dipetakan
+                            // Fallback cocokkan Nama jika ID tidak ada/berbeda
                             if (!targetPlayer) {
                                 targetPlayer = participants.find(x => 
                                     x.name.trim().toLowerCase() === nameInRow.toLowerCase() && 
@@ -805,10 +805,10 @@
                                 );
                             }
 
-                            // Jika masih tidak ada di list utama (misal data baru dari luar), tambahkan otomatis ke participants
+                            // Jika pemain sama sekali tidak ada di database dasar, tambahkan otomatis
                             if (!targetPlayer) {
                                 targetPlayer = {
-                                    id: idInRow || 'restored_' + Math.random().toString(36.substr(2, 9)),
+                                    id: idInRow || 'restored_' + Math.random().toString(36).substr(2, 9),
                                     name: nameInRow,
                                     ttl: row["TTL"] !== "-" ? row["TTL"] : "",
                                     school: row["Asal Sekolah"] || "-",
@@ -818,8 +818,8 @@
                                     club: row["Klub"] !== "-" ? row["Klub"] : "",
                                     notes: row["Catatan"] !== "-" ? row["Catatan"] : "",
                                     present: true,
-                                    starred: row["Status"] === "Ditandai" || row["Status"] === "Ditandai Pelatih",
-                                    passed: row["Status"] === "Lolos" || row["Status"] === "Lolos Seleksi"
+                                    starred: false,
+                                    passed: false
                                 };
                                 participants.push(targetPlayer);
                             }
@@ -843,7 +843,7 @@
                         });
                     }
 
-                    // 2. Restore Sheet Tim & Match (Membaca semua baris tim tanpa terpotong)
+                    // 2. Restore Sheet Tim & Match Tanpa Terpotong
                     if (workbook.Sheets["Data Tim & Match"]) {
                         const teamRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Tim & Match"], { defval: "" });
                         let restoredTeamsMap = {};
@@ -857,7 +857,7 @@
                             let vNum = row["No. Punggung"] === "-" || !row["No. Punggung"] ? "" : String(row["No. Punggung"]);
                             let vColorName = String(row["Warna Rompi"] || "Merah").trim();
 
-                            if (!tName || !pName) return; // Lewati jika data tim/pemain kosong
+                            if (!tName || !pName) return;
 
                             let playerObj = null;
                             if (pId) {
@@ -870,7 +870,6 @@
                                 );
                             }
 
-                            // Jika pemain benar-benar tidak ada di database, buat data sementara agar tim tetap terbentuk
                             if (!playerObj) {
                                 playerObj = {
                                     id: 'temp_' + Math.random().toString(36).substr(2, 9),
@@ -910,7 +909,7 @@
 
                     saveData();
                     refreshAllViews();
-                    alert(`PEMULIHAN BERHASIL! 🎉\n\n- Total ${restoredParticipantsCount} data peserta berhasil dimuat.\n- Susunan tim & match berhasil dipulihkan secara penuh.`);
+                    alert(`PEMULIHAN BERHASIL! 🎉\n\n- Total ${restoredParticipantsCount} data peserta berhasil dipulihkan secara penuh.\n- Susunan tim & match berhasil dikembalikan.`);
                 } catch (err) {
                     console.error("Gagal restore file:", err);
                     alert("Gagal membaca file Excel. Pastikan format file .xlsx sudah benar!");
@@ -971,7 +970,7 @@
             XLSX.writeFile(workbook, "Daftar_Tim_dan_Match_Futsal.xlsx");
         }
 
-        // --- ALGORITMA WAJIB RATA: 1 Anchor, 2 Flank, 1 Pivot, 1 GK persis di setiap tim ---
+        // --- ALGORITMA WAJIB RATA ---
         function generateTeams() {
             const presentPlayers = participants.filter(p => p.present);
 
