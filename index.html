@@ -779,100 +779,126 @@
                     const workbook = XLSX.read(data, { type: 'array' });
 
                     let restoredParticipantsCount = 0;
-                    let matchedParticipantIds = new Set(); // Melacak ID yang sudah pernah ter-restore
+                    let matchedParticipantIds = new Set();
 
-                    // 1. Restore Sheet Peserta
+                    // 1. Restore Sheet Peserta (Membaca seluruh baris secara aman)
                     if (workbook.Sheets["Data Peserta"]) {
-                        const pesertaRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Peserta"]);
+                        const pesertaRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Peserta"], { defval: "" });
                         pesertaRows.forEach(row => {
-                            const idInRow = row["ID"];
-                            const nameInRow = row["Nama"];
+                            const idInRow = String(row["ID"] || "").trim();
+                            const nameInRow = String(row["Nama"] || "").trim();
                             
+                            if (!nameInRow) return; // Lewati baris kosong
+
                             let targetPlayer = null;
 
-                            // Langkah A: Cari berdasarkan ID unik jika ada
+                            // Cari berdasarkan ID unik
                             if (idInRow) {
-                                targetPlayer = participants.find(x => String(x.id) === String(idInRow));
+                                targetPlayer = participants.find(x => String(x.id) === idInRow);
                             }
 
-                            // Langkah B: Jika tanpa ID atau ID tak cocok, cari berdasarkan Nama yang BELUM terpakai
-                            if (!targetPlayer && nameInRow) {
+                            // Jika tidak ketemu berdasarkan ID, cari berdasarkan Nama yang belum dipetakan
+                            if (!targetPlayer) {
                                 targetPlayer = participants.find(x => 
-                                    x.name.trim().toLowerCase() === String(nameInRow).trim().toLowerCase() && 
+                                    x.name.trim().toLowerCase() === nameInRow.toLowerCase() && 
                                     !matchedParticipantIds.has(String(x.id))
                                 );
                             }
 
-                            // Jika ketemu, pulihkan data peserta tersebut
-                            if (targetPlayer) {
-                                matchedParticipantIds.add(String(targetPlayer.id));
-                                targetPlayer.present = true;
-
-                                if (row["Strongest Foot"]) targetPlayer.foot = row["Strongest Foot"];
-                                if (row["Klub"] && row["Klub"] !== "-") targetPlayer.club = row["Klub"];
-                                if (row["Catatan"] && row["Catatan"] !== "-") targetPlayer.notes = row["Catatan"];
-                                
-                                const status = row["Status"];
-                                if (status === "Lolos") {
-                                    targetPlayer.passed = true;
-                                    targetPlayer.starred = false;
-                                } else if (status === "Ditandai") {
-                                    targetPlayer.starred = true;
-                                    targetPlayer.passed = false;
-                                }
-                                restoredParticipantsCount++;
+                            // Jika masih tidak ada di list utama (misal data baru dari luar), tambahkan otomatis ke participants
+                            if (!targetPlayer) {
+                                targetPlayer = {
+                                    id: idInRow || 'restored_' + Math.random().toString(36.substr(2, 9)),
+                                    name: nameInRow,
+                                    ttl: row["TTL"] !== "-" ? row["TTL"] : "",
+                                    school: row["Asal Sekolah"] || "-",
+                                    phone: row["No. HP"] || "-",
+                                    position: row["Posisi"] || "Flank",
+                                    foot: row["Strongest Foot"] || "Right",
+                                    club: row["Klub"] !== "-" ? row["Klub"] : "",
+                                    notes: row["Catatan"] !== "-" ? row["Catatan"] : "",
+                                    present: true,
+                                    starred: row["Status"] === "Ditandai" || row["Status"] === "Ditandai Pelatih",
+                                    passed: row["Status"] === "Lolos" || row["Status"] === "Lolos Seleksi"
+                                };
+                                participants.push(targetPlayer);
                             }
+
+                            matchedParticipantIds.add(String(targetPlayer.id));
+                            targetPlayer.present = true;
+
+                            if (row["Strongest Foot"]) targetPlayer.foot = row["Strongest Foot"];
+                            if (row["Klub"] && row["Klub"] !== "-") targetPlayer.club = row["Klub"];
+                            if (row["Catatan"] && row["Catatan"] !== "-") targetPlayer.notes = row["Catatan"];
+                            
+                            const status = String(row["Status"] || "");
+                            if (status.includes("Lolos")) {
+                                targetPlayer.passed = true;
+                                targetPlayer.starred = false;
+                            } else if (status.includes("Ditandai")) {
+                                targetPlayer.starred = true;
+                                targetPlayer.passed = false;
+                            }
+                            restoredParticipantsCount++;
                         });
                     }
 
-                    // 2. Restore Sheet Tim (Tetap presisi meskipun nama duplikat)
+                    // 2. Restore Sheet Tim & Match (Membaca semua baris tim tanpa terpotong)
                     if (workbook.Sheets["Data Tim & Match"]) {
-                        const teamRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Tim & Match"]);
+                        const teamRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data Tim & Match"], { defval: "" });
                         let restoredTeamsMap = {};
                         let assignedInRestore = new Set();
 
                         teamRows.forEach(row => {
-                            let tName = row["Nama Tim"];
-                            let pName = row["Nama Pemain"];
-                            let pId = row["ID Pemain"];
-                            let pos = row["Posisi"];
-                            let vNum = row["No. Punggung"] === "-" ? "" : String(row["No. Punggung"] || "");
-                            let vColorName = row["Warna Rompi"] || "Merah";
+                            let tName = String(row["Nama Tim"] || "").trim();
+                            let pName = String(row["Nama Pemain"] || "").trim();
+                            let pId = String(row["ID Pemain"] || "").trim();
+                            let pos = String(row["Posisi"] || "").trim();
+                            let vNum = row["No. Punggung"] === "-" || !row["No. Punggung"] ? "" : String(row["No. Punggung"]);
+                            let vColorName = String(row["Warna Rompi"] || "Merah").trim();
 
-                            if (tName && pName) {
-                                let playerObj = null;
+                            if (!tName || !pName) return; // Lewati jika data tim/pemain kosong
 
-                                // Cari berdasarkan ID dulu
-                                if (pId) {
-                                    playerObj = participants.find(x => String(x.id) === String(pId));
-                                }
-                                // Fallback ke Nama yang belum dimasukkan tim saat restore ini
-                                if (!playerObj) {
-                                    playerObj = participants.find(x => 
-                                        x.name.trim().toLowerCase() === String(pName).trim().toLowerCase() && 
-                                        !assignedInRestore.has(String(x.id))
-                                    );
-                                }
+                            let playerObj = null;
+                            if (pId) {
+                                playerObj = participants.find(x => String(x.id) === pId);
+                            }
+                            if (!playerObj) {
+                                playerObj = participants.find(x => 
+                                    x.name.trim().toLowerCase() === pName.toLowerCase() && 
+                                    !assignedInRestore.has(String(x.id))
+                                );
+                            }
 
-                                if (playerObj) {
-                                    assignedInRestore.add(String(playerObj.id));
+                            // Jika pemain benar-benar tidak ada di database, buat data sementara agar tim tetap terbentuk
+                            if (!playerObj) {
+                                playerObj = {
+                                    id: 'temp_' + Math.random().toString(36).substr(2, 9),
+                                    name: pName,
+                                    school: row["Asal Sekolah"] || "-",
+                                    phone: row["No. HP"] || "-",
+                                    position: pos === "GK" ? "GK" : "Flank",
+                                    present: true
+                                };
+                                participants.push(playerObj);
+                            }
 
-                                    if (!restoredTeamsMap[tName]) {
-                                        let foundColor = VEST_COLORS.find(v => v.name.toLowerCase() === vColorName.toLowerCase()) || VEST_COLORS[0];
-                                        restoredTeamsMap[tName] = {
-                                            name: tName,
-                                            vestColorId: foundColor.id,
-                                            players: [],
-                                            gkPlayer: null
-                                        };
-                                    }
+                            assignedInRestore.add(String(playerObj.id));
 
-                                    if (pos === "GK") {
-                                        restoredTeamsMap[tName].gkPlayer = { player: { id: playerObj.id }, vestNum: vNum };
-                                    } else {
-                                        restoredTeamsMap[tName].players.push({ player: { id: playerObj.id }, vestNum: vNum });
-                                    }
-                                }
+                            if (!restoredTeamsMap[tName]) {
+                                let foundColor = VEST_COLORS.find(v => v.name.toLowerCase() === vColorName.toLowerCase()) || VEST_COLORS[0];
+                                restoredTeamsMap[tName] = {
+                                    name: tName,
+                                    vestColorId: foundColor.id,
+                                    players: [],
+                                    gkPlayer: null
+                                };
+                            }
+
+                            if (pos === "GK") {
+                                restoredTeamsMap[tName].gkPlayer = { player: { id: playerObj.id }, vestNum: vNum };
+                            } else {
+                                restoredTeamsMap[tName].players.push({ player: { id: playerObj.id }, vestNum: vNum });
                             }
                         });
 
@@ -884,10 +910,10 @@
 
                     saveData();
                     refreshAllViews();
-                    alert(`PEMULIHAN SELESAI & LENGKAP! 🎉\n\n- ${restoredParticipantsCount} data peserta (termasuk nama duplikat) dipulihkan.\n- Susunan tim & nomor punggung berhasil dikembalikan.`);
+                    alert(`PEMULIHAN BERHASIL! 🎉\n\n- Total ${restoredParticipantsCount} data peserta berhasil dimuat.\n- Susunan tim & match berhasil dipulihkan secara penuh.`);
                 } catch (err) {
                     console.error("Gagal restore file:", err);
-                    alert("Gagal membaca file Excel. Pastikan file backup yang diunggah adalah file .xlsx yang benar!");
+                    alert("Gagal membaca file Excel. Pastikan format file .xlsx sudah benar!");
                 }
                 event.target.value = ''; 
             };
